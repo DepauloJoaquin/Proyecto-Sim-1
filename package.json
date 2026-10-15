@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "liquidfun-wasm": "^7.0.0",
+    "pixi.js": "^8.20.1"
+  }
+}
