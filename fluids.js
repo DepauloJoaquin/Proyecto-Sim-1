@@ -51,6 +51,14 @@ let positionOffset = 0;
 
 const particleGraphics = [];
 
+const particleTypes = [];
+
+const fluidColors = {
+    water: "#3399ff",
+    lava: "#ff5a1f",
+    steam: "#dddddd"
+};
+
 
 function createParticleGraphics(app) {
 
@@ -137,6 +145,14 @@ function resetWater(app, newRadius) {
         particleGroupDef
     );
 
+    // Get the amount of particles created at startup
+    const initialParticleCount = particleSystem.GetParticleCount();
+
+    // Mark all initial particles as water
+    for(let i = 0; i < initialParticleCount; i++){
+        particleTypes[i] = "water";
+    }
+
     // 6. Recreate Pixi graphics
 
     createParticleGraphics(app);
@@ -180,5 +196,48 @@ export {
     createParticleGraphics,
     resetWater,
     changeWaterAmount,
-    updateParticleGraphics
+    updateParticleGraphics,
+    createFluidAt,
+    syncParticleGraphics
 };
+
+function createFluidAt(x,y,fluidType){
+    const particleDef = new Box2D.b2ParticleDef();
+
+    particleDef.position = new Box2D.b2Vec2(x/METER,y/METER);
+
+    const particleIndex = particleSystem.CreateParticle(particleDef);
+
+    particleTypes[particleIndex] = fluidType;
+}
+
+function syncParticleGraphics(app){
+
+    const newParticleCount = particleSystem.GetParticleCount();
+
+    const visualRadius = particleSystem.GetRadius() * METER;
+
+    while(particleGraphics.length < newParticleCount){
+        const particleGraphic = new Graphics();
+
+        const particleIndex = particleGraphics.length;
+
+        const fluidType = particleTypes[particleIndex];
+
+        const particleColor = fluidColors[fluidType];
+
+
+        particleGraphic.circle(0,0,visualRadius).fill(particleColor);
+
+        app.stage.addChild(particleGraphic);
+
+        particleGraphics.push(particleGraphic);
+    }
+
+    particleCount = newParticleCount;
+
+    positionOffset = Box2D.getPointer(particleSystem.GetPositionBuffer()) >> 2;
+}
+
+
+

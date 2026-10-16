@@ -14,7 +14,9 @@ import {
     createParticleGraphics,
     updateParticleGraphics,
     resetWater,
-    changeWaterAmount
+    changeWaterAmount,
+    createFluidAt,
+    syncParticleGraphics
 } from "./fluids.js";
 
 import {
@@ -33,6 +35,12 @@ import {
 } from "./debug.js";
 
 import "./ui.js";
+
+import{
+    getCurrentFluid,
+    getCurrentTerrain,
+    getCurrentTool
+} from "./ui.js";
 
 
 console.log("LiquidFun loaded");
@@ -133,6 +141,60 @@ app.ticker.add(() => {
         particleIterations
     );
 
+    // Create particles while the mouse button is held down
+
+    const now = performance.now();
+
+    const canCreateFluid = ispointerDown && getCurrentTool() === "fluid" && now - lastParticleSpawn >= particleSpawnInterval;
+
+    if(canCreateFluid){
+         createFluidAt(
+            pointerX,
+            pointerY,
+            getCurrentFluid()
+        );
+
+        syncParticleGraphics(app);
+        lastParticleSpawn = now;
+    }
+
     updateParticleGraphics();
        updateDebug();
 });
+
+app.stage.eventMode = "static";
+app.stage.hitArea = app.screen;
+
+let ispointerDown = false;
+
+
+// Current mouse position inside the simulation
+let pointerX = 0;
+let pointerY = 0;
+
+
+// Controls how often a particle can be created
+
+let lastParticleSpawn = 0;
+const particleSpawnInterval = 100;
+
+app.stage.on("pointerdown",(event) =>{
+    ispointerDown = true;
+
+    const x = event.global.x;
+    const y = event.global.y;
+
+})
+
+app.stage.on("pointerup",() =>{
+    ispointerDown = false;
+})
+
+app.stage.on("pointerupoutside",() =>{
+    ispointerDown = false;
+})
+
+app.stage.on("pointermove",(event) => {
+    pointerX = event.global.x;
+    pointerY = event.global.y;
+})
