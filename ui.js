@@ -105,7 +105,7 @@ function selectTool(tool){
         terrainToolButton.classList.add("selected")
     }
 
-    if(tool === "erase"){
+    if(tool === "eraseFluid"){
         eraseToolButton.classList.add("selected")
     }
 
@@ -121,7 +121,7 @@ terrainToolButton.addEventListener("click",()=>{
 })
 
 eraseToolButton.addEventListener("click",()=>{
-    selectTool("erase")
+    selectTool("eraseFluid")
 })
 
 selectTool("fluid")

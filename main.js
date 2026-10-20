@@ -1,7 +1,13 @@
 import {
     Application,
     Graphics,
-    Text
+    Text,
+    Container,
+    RenderTexture,
+    Sprite,
+    Filter,
+    GlProgram,
+    BlurFilter
 } from "pixi.js";
 
 import {
@@ -16,7 +22,13 @@ import {
     resetWater,
     changeWaterAmount,
     createFluidAt,
-    syncParticleGraphics
+    createFluidBrush,
+    syncParticleGraphics,
+    updateFluidBehaviour,
+    cleanupParticles,
+    eraseFluidAt,
+    setBrushSize,
+    setBrushAmount
 } from "./fluids.js";
 
 import {
@@ -43,6 +55,12 @@ import{
 } from "./ui.js";
 
 
+import{
+    loadMetaballShader,
+    metaballVertexShader
+} from "./metaballs.js";
+
+
 console.log("LiquidFun loaded");
 
 
@@ -58,10 +76,79 @@ await app.init({
     background: "#87ceeb"
 });
 
+// Container used only for fluid particle graphics
+
+const particleLayer = new Container();
+
+
+// Texture where the fluid particles will be rendered
+
+const fluidRenderTexture = RenderTexture.create({
+    width: app.screen.width,
+    height: app.screen.height
+});
+
+
+// Sprite that displays the rendered fluid texture
+
+const fluidSprite = new Sprite(fluidRenderTexture);
+
+const metaballShaderCode = await loadMetaballShader();
+
+
+const metaballFilter = 
+    new Filter({
+        glProgram: new GlProgram({
+            vertex: metaballVertexShader,
+            fragment: metaballShaderCode
+        }),
+
+
+    resources:{
+        metaballUniforms:{
+            uThreshold:{
+                value: 0.45,
+                type: "f32"
+            }
+        }
+    }
+    });
+
+
+// Softens particle edges before applying the metaball effect
+
+const fluidBlur = new BlurFilter({
+    strength: 6,
+    quality:3
+});
+
+fluidSprite.filters = [
+    fluidBlur,
+    metaballFilter
+];
+
+fluidSprite.x = 0
+
+
+app.stage.addChild(fluidSprite);
+
+
+
+
+
+
+
+
 const canvasContainer =
     document.getElementById("canvas-container");
 
 canvasContainer.appendChild(app.canvas);
+
+
+console.log(
+    "Metaball shader:",
+    metaballShaderCode
+);
 
 
 // ----------------------------------
@@ -76,12 +163,47 @@ createTerrainBlock(
     100
 );
 
+const canvasWidth = app.screen.width;
+const canvasHeight = app.screen.height;
+
+const wallThickness = 20;
+
+// Floor
+
+createTerrainBlock(
+    app,
+    canvasWidth / 2,
+    canvasHeight - wallThickness / 2,
+    canvasWidth,
+    wallThickness
+);
+
+// Left wall
+
+createTerrainBlock(
+    app,
+    wallThickness / 2,
+    canvasHeight / 2,
+    wallThickness,
+    canvasHeight
+);
+
+// Right wall
+
+createTerrainBlock(
+    app,
+    canvasWidth - wallThickness / 2,
+    canvasHeight / 2,
+    wallThickness,
+    canvasHeight
+);
+
 
 // ----------------------------------
 // WATER GRAPHICS
 // ----------------------------------
 
-createParticleGraphics(app);
+createParticleGraphics(particleLayer);
 
 setupDebug(app);
 
@@ -98,7 +220,7 @@ setupSettings({
     onRadiusChange: (value) => {
 
         resetWater(
-            app,
+            particleLayer,
             value
         );
     },
@@ -106,7 +228,7 @@ setupSettings({
     onWaterAmountChange: (value) => {
 
         changeWaterAmount(
-            app,
+            particleLayer,
             value
         );
     },
@@ -116,10 +238,17 @@ setupSettings({
     setFPSVisible(visible);
 },
 
-onGridChange: (visible) => {
+    onGridChange: (visible) => {
 
-    setGridVisible(visible);
-}
+        setGridVisible(visible);
+    },
+    onBrushSizeChange: (value) => {
+        setBrushSize(value);
+    },
+
+    onBrushAmountChange: (value) => {
+        setBrushAmount(value);
+    },
 });
 
 
@@ -148,18 +277,36 @@ app.ticker.add(() => {
     const canCreateFluid = ispointerDown && getCurrentTool() === "fluid" && now - lastParticleSpawn >= particleSpawnInterval;
 
     if(canCreateFluid){
-         createFluidAt(
-            pointerX,
-            pointerY,
-            getCurrentFluid()
-        );
+        createFluidBrush(
+        pointerX,
+        pointerY,
+        getCurrentFluid()
+    );
 
-        syncParticleGraphics(app);
+        syncParticleGraphics(particleLayer);
         lastParticleSpawn = now;
     }
 
+    if(ispointerDown && getCurrentTool() === "eraseFluid"){
+         eraseFluidAt(
+        pointerX,
+        pointerY,
+        particleLayer
+        );
+    }
+    updateFluidBehaviour();
+    cleanupParticles(particleLayer);
     updateParticleGraphics();
-       updateDebug();
+
+    
+
+    app.renderer.render({
+        container:particleLayer,
+        target: fluidRenderTexture,
+        clear: true
+    })
+
+    updateDebug();
 });
 
 app.stage.eventMode = "static";

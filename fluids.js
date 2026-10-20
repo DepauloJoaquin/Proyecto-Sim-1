@@ -28,6 +28,9 @@ const waterWeight = 0.5;
 const waterSpawnX = 4;
 const waterSpawnY = 1;
 
+// Stores the type of every LiquidFun particle
+const particleTypes = [];
+
 watershape.SetAsBox(
     waterWidth,
     waterWeight,
@@ -41,6 +44,16 @@ particleGroupDef.shape = watershape;
 
 particleSystem.CreateParticleGroup(particleGroupDef);
 
+// Get how many particles were created
+const initialParticleCount =
+    particleSystem.GetParticleCount();
+
+
+// Mark all startup particles as water
+for (let i = 0; i < initialParticleCount; i++) {
+    particleTypes[i] = "water";
+}
+
 
 // ----------------------------------
 // PARTICLE GRAPHICS
@@ -51,16 +64,46 @@ let positionOffset = 0;
 
 const particleGraphics = [];
 
-const particleTypes = [];
-
-const fluidColors = {
-    water: "#3399ff",
-    lava: "#ff5a1f",
-    steam: "#dddddd"
-};
 
 
-function createParticleGraphics(app) {
+
+const fluids = {
+    water:{
+         color: "#3399ff",
+         velocity: new Box2D.b2Vec2(0,0),
+         gravityScale: 1,
+         viscocity: 0
+    },
+
+     lava: {
+        color: "#ff5a1f",
+        velocity: new Box2D.b2Vec2(0, 0.5),
+        gravityScale: 1.2,
+        viscocity: 0.08
+    },
+
+       steam: {
+        color: "#dddddd",
+        velocity: new Box2D.b2Vec2(0, -2),
+        gravityScale: -0.5,
+        viscosity: 0
+    }
+}
+
+
+let brushSize = 30;
+let brushAmount = 5;
+
+function setBrushSize(value) {
+    brushSize = Number(value);
+}
+
+function setBrushAmount(value) {
+    brushAmount = Number(value);
+}
+
+
+function createParticleGraphics(particleLayer) {
 
     //To represent the particles we must first count how many there are
 
@@ -80,13 +123,13 @@ function createParticleGraphics(app) {
         const particleGraphic = new Graphics();
 
         const visualRadius =
-            particleSystem.GetRadius() * METER;
+            particleSystem.GetRadius() * METER * 1.5;
 
         particleGraphic
             .circle(0, 0, visualRadius)
             .fill("#3399ff");
 
-        app.stage.addChild(particleGraphic);
+        particleLayer.addChild(particleGraphic);
 
         particleGraphics.push(particleGraphic);
 
@@ -95,11 +138,11 @@ function createParticleGraphics(app) {
 }
 
 
-function destroyParticleGraphics(app) {
+function destroyParticleGraphics(particleLayer) {
 
     for (const particleGraphic of particleGraphics) {
 
-        app.stage.removeChild(particleGraphic);
+        particleLayer.removeChild(particleGraphic);
 
         particleGraphic.destroy();
     }
@@ -108,11 +151,14 @@ function destroyParticleGraphics(app) {
 }
 
 
-function resetWater(app, newRadius) {
+function resetWater(particleLayer, newRadius) {
 
     // 1. Remove Pixi graphics
 
-    destroyParticleGraphics(app);
+    destroyParticleGraphics(particleLayer);
+
+    // Remove the type information from the old particle system
+    particleTypes.length = 0;
 
     // 2. Delete the entire old LiquidFun particle system
 
@@ -155,16 +201,16 @@ function resetWater(app, newRadius) {
 
     // 6. Recreate Pixi graphics
 
-    createParticleGraphics(app);
+    createParticleGraphics(particleLayer);
 }
 
 
-function changeWaterAmount(app, value) {
+function changeWaterAmount(particleLayer, value) {
 
     waterWidth = Number(value);
 
     resetWater(
-        app,
+        particleLayer,
         particleSystem.GetRadius()
     );
 }
@@ -198,7 +244,14 @@ export {
     changeWaterAmount,
     updateParticleGraphics,
     createFluidAt,
-    syncParticleGraphics
+    createFluidBrush,
+    syncParticleGraphics,
+    updateFluidBehaviour,
+    cleanupParticles,
+    eraseFluidAt,
+    setBrushSize,
+    setBrushAmount
+    
 };
 
 function createFluidAt(x,y,fluidType){
@@ -206,16 +259,42 @@ function createFluidAt(x,y,fluidType){
 
     particleDef.position = new Box2D.b2Vec2(x/METER,y/METER);
 
+    // Default initial velocity
+
+    particleDef.velocity = fluids[fluidType].velocity;
+
+
+
     const particleIndex = particleSystem.CreateParticle(particleDef);
 
     particleTypes[particleIndex] = fluidType;
 }
 
-function syncParticleGraphics(app){
+
+
+function createFluidBrush(x, y, fluidType) {
+
+     for (let i = 0; i < brushAmount; i++) {
+
+        const offsetX =
+            (Math.random() - 0.5) * brushSize;
+
+        const offsetY =
+            (Math.random() - 0.5) * brushSize;
+
+        createFluidAt(
+            x + offsetX,
+            y + offsetY,
+            fluidType
+        );
+    }
+}
+
+function syncParticleGraphics(particleLayer){
 
     const newParticleCount = particleSystem.GetParticleCount();
 
-    const visualRadius = particleSystem.GetRadius() * METER;
+    const visualRadius = particleSystem.GetRadius() * METER * 1.5;
 
     while(particleGraphics.length < newParticleCount){
         const particleGraphic = new Graphics();
@@ -224,12 +303,12 @@ function syncParticleGraphics(app){
 
         const fluidType = particleTypes[particleIndex];
 
-        const particleColor = fluidColors[fluidType];
+        const particleColor = fluids[fluidType].color;
 
 
         particleGraphic.circle(0,0,visualRadius).fill(particleColor);
 
-        app.stage.addChild(particleGraphic);
+        particleLayer.addChild(particleGraphic);
 
         particleGraphics.push(particleGraphic);
     }
@@ -239,5 +318,144 @@ function syncParticleGraphics(app){
     positionOffset = Box2D.getPointer(particleSystem.GetPositionBuffer()) >> 2;
 }
 
+function updateFluidBehaviour(){
+    const velocities = Box2D.HEAPF32;
+
+    const velocityOffset = Box2D.getPointer(particleSystem.GetVelocityBuffer()) >> 2;
+
+    for(let i = 0; i < particleCount; i++){
+        const fluidType = particleTypes[i];
+
+        const fluid = fluids[fluidType];
+
+        
+
+        if(!fluid){
+            continue;
+        }
+        
+        const index = velocityOffset + i * 2;
+        
+         // Steam upward behaviour
+        if (fluid.gravityScale < 0) {
+
+            velocities[index + 1] +=
+                0.5 * fluid.gravityScale;
+        }
+
+        // Viscosity behaviour
+
+        if (fluid.viscosity > 0) {
+
+            velocities[index] *=
+                1 - fluid.viscosity;
+
+            velocities[index + 1] *=
+                1 - fluid.viscosity;
+        }    
 
 
+    }
+}
+
+// Removes steam particles that are outside the top of the canvas
+function cleanupParticles(particleLayer){
+    const positions = Box2D.HEAPF32;
+
+    const currentParticleCount = particleSystem.GetParticleCount();
+
+    // Go backwards so indexes do not shift while deleting
+
+    for(let i = currentParticleCount - 1; i>= 0 ;  i--){
+        const index = positionOffset + i * 2;
+
+         const y =
+            positions[index + 1] * METER;
+
+        const fluidType =
+        particleTypes[i];
+
+
+        if (
+            fluidType === "steam" &&
+            y < -50
+        ){
+             particleSystem.DestroyParticle(i);
+
+            const graphic =
+                particleGraphics[i];
+
+            particleLayer.removeChild(graphic);
+
+            graphic.destroy();
+
+            particleGraphics.splice(i, 1);
+
+            particleTypes.splice(i, 1);
+        }
+    }
+      // Keep our graphic count synchronized
+    particleCount = particleGraphics.length;
+
+    // Refresh the position buffer
+    positionOffset =
+    Box2D.getPointer(
+        particleSystem.GetPositionBuffer()
+    ) >> 2;
+}
+
+function eraseFluidAt(x,y,particleLayer){
+    const positions = Box2D.HEAPF32;
+
+    const currentParticleCount =
+        particleSystem.GetParticleCount();
+
+      const eraseRadius = 30;
+
+       for (let i = currentParticleCount - 1; i >= 0; i--){
+             const index =
+            positionOffset + i * 2;
+
+        const particleX =
+            positions[index] * METER;
+
+        const particleY =
+            positions[index + 1] * METER;
+
+        const deltaX =
+            particleX - x;
+
+        const deltaY =
+            particleY - y;
+
+
+        const distance =
+            Math.sqrt(
+                deltaX * deltaX +
+                deltaY * deltaY
+        );
+
+         if (distance <= eraseRadius) {
+
+            particleSystem.DestroyParticle(i);
+
+            const graphic =
+                particleGraphics[i];
+
+            particleLayer.removeChild(graphic);
+
+            graphic.destroy();
+
+            particleGraphics.splice(i, 1);
+
+            particleTypes.splice(i, 1);
+        }
+    }
+    particleCount =
+        particleGraphics.length;
+
+    positionOffset =
+        Box2D.getPointer(
+            particleSystem.GetPositionBuffer()
+        ) >> 2;
+}
