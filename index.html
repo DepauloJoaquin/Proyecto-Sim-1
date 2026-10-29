@@ -3,7 +3,6 @@
 
 <head>
     <meta charset="UTF-8">
-   
 
     <script type="importmap">
     {
@@ -16,196 +15,200 @@
 
     <style>
 
-     /* Removes the default margin that browsers add around the page */
-body {
-    margin: 0;
+        /* Removes the default margin that browsers add around the page */
+        body {
+            margin: 0;
 
-    /* Sets the main font used by the page */
-    font-family: Arial, sans-serif;
+            /* Sets the main font used by the page */
+            font-family: Arial, sans-serif;
 
-    /* Dark background for the whole application */
-    background: #111;
+            /* Dark background for the whole application */
+            background: #111;
 
-    /* Default text color */
-    color: white;
-}
-
-
-/* Main container that holds the canvas, game UI and settings panel */
-#game-container {
-    /* Places child elements next to each other horizontally */
-    display: flex;
-
-    /* Makes the container at least as tall as the browser window */
-    min-height: 100vh;
-
-    /* Background color of the application area */
-    background: #111;
-}
+            /* Default text color */
+            color: white;
+        }
 
 
-/* Container where the PixiJS canvas is inserted */
-#canvas-container {
-    /* Adds spacing around the canvas */
-    padding: 20px;
-}
+        /* Main container that holds the canvas, game UI and settings panel */
+        #game-container {
+            /* Places child elements next to each other horizontally */
+            display: flex;
+
+            /* Makes the container at least as tall as the browser window */
+            min-height: 100vh;
+
+            /* Background color of the application area */
+            background: #111;
+        }
 
 
-/* Main game interface panel */
-#game-ui {
-    /* Fixed width of the side panel */
-    width: 220px;
-
-    /* Internal spacing between the content and the panel borders */
-    padding: 20px;
-
-    /* Dark gray background */
-    background: #1b1b1b;
-
-    /* Small border to visually separate the panel from the canvas */
-    border-left: 1px solid #333;
-}
+        /* Container where the PixiJS canvas is inserted */
+        #canvas-container {
+            /* Adds spacing around the canvas */
+            padding: 20px;
+        }
 
 
-/* Styles only h2 elements inside #game-ui */
-#game-ui h2 {
-    /* Removes the default top margin of the heading */
-    margin-top: 0;
+        /* Main game interface panel */
+        #game-ui {
+            /* Fixed width of the side panel */
+            width: 220px;
 
-    /* Changes the heading size */
-    font-size: 22px;
-}
+            /* Internal spacing between the content and the panel borders */
+            padding: 20px;
 
+            /* Dark gray background */
+            background: #1b1b1b;
 
-/* Container for the fluid buttons */
-.fluid-buttons,
-.terrain-buttons,
-.tools-buttons {
-    /* Enables Flexbox */
-    display: flex;
-
-    /* Places the buttons vertically instead of horizontally */
-    flex-direction: column;
-
-    /* Adds space between each button */
-    gap: 10px;
-}
+            /* Small border to visually separate the panel from the canvas */
+            border-left: 1px solid #333;
+        }
 
 
-/* Base style for every fluid button */
-.fluid-button,
-.terrain-button,
-.tool-button {
-    /* Adds internal space inside the button */
-    padding: 12px;
+        /* Styles only h2 elements inside #game-ui */
+        #game-ui h2 {
+            /* Removes the default top margin of the heading */
+            margin-top: 0;
 
-    /* Adds a subtle border */
-    border: 1px solid #444;
-
-    /* Rounds the button corners */
-    border-radius: 10px;
-
-    /* Button background color */
-    background: #2a2a2a;
-
-    /* Button text color */
-    color: white;
-
-    /* Changes the mouse cursor when hovering the button */
-    cursor: pointer;
-
-    /*
-    Makes some visual changes animate smoothly
-    instead of changing instantly
-    */
-    transition:
-        background 0.2s,
-        transform 0.1s,
-        border 0.2s;
-}
+            /* Changes the heading size */
+            font-size: 22px;
+        }
 
 
-/* Style applied while the mouse is over a fluid button */
-.fluid-button:hover,
-.terrain-button:hover,
-.tool-buttons:hover {
-    /* Makes the button slightly brighter */
-    background: #363636;
+        /* Container for buttons */
+        .fluid-buttons,
+        .terrain-buttons,
+        .tools-buttons {
+            /* Enables Flexbox */
+            display: flex;
 
-    /* Moves the button 1 pixel upward */
-    transform: translateY(-1px);
-}
+            /* Places the buttons vertically instead of horizontally */
+            flex-direction: column;
 
-
-/* Style for the currently selected fluid button */
-.fluid-button.selected,
-.terrain-button.selected,
-.tool-button.selected {
-    /* Makes the selected button easier to identify */
-    border: 1px solid white;
-
-    /* Slightly changes its background */
-    background: #444;
-}
+            /* Adds space between each button */
+            gap: 10px;
+        }
 
 
+        /* Base style for every button */
+        .fluid-button,
+        .terrain-button,
+        .tool-button {
+            /* Adds internal space inside the button */
+            padding: 12px;
 
-/* Settings panel */
-#settings-panel {
-    /* Width of the settings panel */
-    width: 250px;
+            /* Adds a subtle border */
+            border: 1px solid #444;
 
-    /* Internal spacing */
-    padding: 20px;
+            /* Rounds the button corners */
+            border-radius: 10px;
 
-    /* Panel background */
-    background-color: #222222;
+            /* Button background color */
+            background: #2a2a2a;
 
-    /* Text color */
-    color: white;
+            /* Button text color */
+            color: white;
 
-    /* Rounded corners */
-    border-radius: 15px;
+            /* Changes the mouse cursor when hovering the button */
+            cursor: pointer;
 
-    /*
-    The settings panel starts hidden.
-    JavaScript will add the "open" class when needed.
-    */
-    display: none;
-}
-
-#game-ui .terrain-title{
-    margin-top: 30px;
-}
-
-
-/*
-This style only applies when the element has:
-
-id="settings-panel"
-AND
-class="open"
-*/
-#settings-panel.open {
-    /* Makes the hidden panel visible */
-    display: block;
-}
+            /* Makes visual changes animate smoothly */
+            transition:
+                background 0.2s,
+                transform 0.1s,
+                border 0.2s;
+        }
 
 
-/* Adds vertical spacing between individual settings */
-.setting {
-    margin-bottom: 20px;
-}
+        /* Style applied while the mouse is over a button */
+        .fluid-button:hover,
+        .terrain-button:hover,
+        .tool-button:hover {
+            /* Makes the button slightly brighter */
+            background: #363636;
+
+            /* Moves the button 1 pixel upward */
+            transform: translateY(-1px);
+        }
+
+
+        /* Style for the currently selected button */
+        .fluid-button.selected,
+        .terrain-button.selected,
+        .tool-button.selected {
+            /* Makes the selected button easier to identify */
+            border: 1px solid white;
+
+            /* Slightly changes its background */
+            background: #444;
+        }
+
+
+        /* Images inside fluid buttons */
+        .fluid-button img {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+        }
+
+
+        /* Settings panel */
+        #settings-panel {
+            /* Width of the settings panel */
+            width: 250px;
+
+            /* Internal spacing */
+            padding: 20px;
+
+            /* Panel background */
+            background-color: #222222;
+
+            /* Text color */
+            color: white;
+
+            /* Rounded corners */
+            border-radius: 15px;
+
+            /* The settings panel starts hidden */
+            display: none;
+        }
+
+
+        #game-ui .terrain-title {
+            margin-top: 30px;
+        }
+
+
+        /*
+        This style only applies when the element has:
+
+        id="settings-panel"
+        AND
+        class="open"
+        */
+        #settings-panel.open {
+            /* Makes the hidden panel visible */
+            display: block;
+        }
+
+
+        /* Adds vertical spacing between individual settings */
+        .setting {
+            margin-bottom: 20px;
+        }
+
     </style>
 
     <script type="module" src="./main.js"></script>
+
 </head>
 
 
 <body>
 
-
     <div id="game-container">
+
 
         <!-- PIXI CANVAS -->
         <div id="canvas-container">
@@ -217,94 +220,120 @@ class="open"
 
             <h2>Fluids</h2>
 
-              <p id="selectedFluidText">
-                    Selected fluid : water
-                </p>
+            <p id="selectedFluidText">
+                Selected fluid: water
+            </p>
 
 
             <div class="fluid-buttons">
 
-              
                 <button
                     id="waterButton"
                     class="fluid-button"
                 >
-                    Water
+                    <img
+                        src="./assets/water3.png"
+                        alt="Water"
+                    >
                 </button>
+
 
                 <button
                     id="lavaButton"
                     class="fluid-button"
                 >
-                    Lava
+                    <img
+                        src="./assets/lava.png"
+                        alt="Lava"
+                    >
                 </button>
+
 
                 <button
                     id="steamButton"
                     class="fluid-button"
                 >
-                    Steam
+                    <img
+                        src="./assets/steam.png"
+                        alt="Steam"
+                    >
                 </button>
 
             </div>
 
 
-            <h2 class="terrain-title"> Terrain</h2>
-            
+            <h2 class="terrain-title">
+                Terrain
+            </h2>
+
             <p id="selectedTerrainText">
                 Selected terrain: Dirt
             </p>
 
 
             <div class="terrain-buttons">
-                <button 
+
+                <button
                     id="dirtButton"
-                    class="terrain-button">
-                
-                
-                Dirt
-                </button> 
-                
-                
-                <button 
-                    id="stoneButton"
-                    class="terrain-button">
-                Stone
+                    class="terrain-button"
+                >
+                    Dirt
                 </button>
 
-            
+
+                <button
+                    id="stoneButton"
+                    class="terrain-button"
+                >
+                    Stone
+                </button>
+
+
+                <!-- Herramienta para borrar tierra y piedra (como Erase Fluid) -->
+                <button
+                    id="eraseTerrainButton"
+                    class="terrain-button"
+                >
+                    Erase Terrain
+                </button>
+
             </div>
 
 
-            <h3 class="tool-title">Tools</h3>
+            <h3 class="tool-title">
+                Tools
+            </h3>
 
             <p id="selectedToolText">
-                selected tool: Fluid
+                Selected tool: Fluid
             </p>
+
 
             <div class="tools-buttons">
 
                 <button
-                id="fluidToolButton"
-                class="tool-button">
-
-                Fluid
+                    id="fluidToolButton"
+                    class="tool-button"
+                >
+                    Fluid
                 </button>
 
 
                 <button
                     id="terrainToolButton"
-                    class="tool-button">
-                
-                Terrain
+                    class="tool-button"
+                >
+                    Terrain
                 </button>
 
 
                 <button
                     id="eraseToolButton"
-                    class="tool-button">
-                Erase
+                    class="tool-button"
+                >
+                    Erase Fluid
                 </button>
+
             </div>
 
         </div>
@@ -316,6 +345,7 @@ class="open"
             <h2>Settings</h2>
 
 
+            <!-- GRAVITY -->
             <div class="setting">
 
                 <p>
@@ -334,6 +364,7 @@ class="open"
             </div>
 
 
+            <!-- PARTICLE RADIUS -->
             <div class="setting">
 
                 <p>
@@ -353,6 +384,7 @@ class="open"
             </div>
 
 
+            <!-- WATER AMOUNT -->
             <div class="setting">
 
                 <p>
@@ -372,6 +404,47 @@ class="open"
             </div>
 
 
+            <!-- BRUSH SIZE -->
+            <div class="setting">
+
+                <p>
+                    Brush Size:
+                    <span id="brushSizeValue">30</span>
+                </p>
+
+                <input
+                    id="brushSizeInput"
+                    type="range"
+                    min="10"
+                    max="100"
+                    step="5"
+                    value="30"
+                >
+
+            </div>
+
+
+            <!-- BRUSH AMOUNT -->
+            <div class="setting">
+
+                <p>
+                    Brush Amount:
+                    <span id="brushAmountValue">5</span>
+                </p>
+
+                <input
+                    id="brushAmountInput"
+                    type="range"
+                    min="1"
+                    max="20"
+                    step="1"
+                    value="5"
+                >
+
+            </div>
+
+
+            <!-- FPS -->
             <div class="setting">
 
                 <label for="fpsCheckBox">
@@ -386,6 +459,7 @@ class="open"
             </div>
 
 
+            <!-- GRID -->
             <div class="setting">
 
                 <label for="gridCheckBox">
@@ -404,3 +478,5 @@ class="open"
     </div>
 
 </body>
+
+</html>

@@ -7,7 +7,9 @@ export function setupSettings({
     onRadiusChange,
     onWaterAmountChange,
     onFPSChange,
-    onGridChange
+    onGridChange,
+    onBrushSizeChange,
+    onBrushAmountChange
 }) {
 
     // -----------------------------
@@ -151,6 +153,68 @@ export function setupSettings({
             );
         }
     );
+
+    // -----------------------------
+    // BRUSH SIZE
+    // -----------------------------
+
+    const brushSizeInput =
+    document.getElementById(
+        "brushSizeInput"
+    );
+
+    const brushSizeValue =
+        document.getElementById(
+            "brushSizeValue"
+        );
+
+    brushSizeInput.addEventListener(
+        "input",
+        () => {
+
+            const value =
+                Number(
+                    brushSizeInput.value
+                );
+
+            brushSizeValue.textContent =
+                value;
+
+            onBrushSizeChange(value);
+        }
+    );
+
+
+// -----------------------------
+// BRUSH AMOUNT
+// -----------------------------
+
+const brushAmountInput =
+    document.getElementById(
+        "brushAmountInput"
+    );
+
+const brushAmountValue =
+    document.getElementById(
+        "brushAmountValue"
+    );
+
+brushAmountInput.addEventListener(
+    "input",
+    () => {
+
+        const value =
+            Number(
+                brushAmountInput.value
+            );
+
+        brushAmountValue.textContent =
+            value;
+
+        onBrushAmountChange(value);
+    }
+);
+
 
 
     // -----------------------------

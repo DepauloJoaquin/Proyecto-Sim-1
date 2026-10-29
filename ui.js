@@ -8,6 +8,7 @@ const steamButton = document.getElementById("steamButton");
 
 const dirtButton = document.getElementById("dirtButton");
 const stoneButton = document.getElementById("stoneButton");
+const eraseTerrainButton = document.getElementById("eraseTerrainButton");
 
 const fluidToolButton = document.getElementById("fluidToolButton");
 const terrainToolButton = document.getElementById("terrainToolButton");
@@ -97,6 +98,9 @@ function selectTool(tool){
     
     eraseToolButton.classList.remove("selected");
 
+    // Erase Terrain también es una herramienta, así que se desmarca acá
+    eraseTerrainButton.classList.remove("selected");
+
     if(tool === "fluid"){
         fluidToolButton.classList.add("selected")
     }
@@ -105,8 +109,13 @@ function selectTool(tool){
         terrainToolButton.classList.add("selected")
     }
 
-    if(tool === "erase"){
+    if(tool === "eraseFluid"){
         eraseToolButton.classList.add("selected")
+    }
+
+    // Marca el botón Erase Terrain cuando está elegido
+    if(tool === "eraseTerrain"){
+        eraseTerrainButton.classList.add("selected")
     }
 
 }
@@ -121,7 +130,12 @@ terrainToolButton.addEventListener("click",()=>{
 })
 
 eraseToolButton.addEventListener("click",()=>{
-    selectTool("erase")
+    selectTool("eraseFluid")
+})
+
+// Al hacer click en Erase Terrain se elige la herramienta de borrar terreno
+eraseTerrainButton.addEventListener("click",()=>{
+    selectTool("eraseTerrain")
 })
 
 selectTool("fluid")
