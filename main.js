@@ -28,7 +28,9 @@ import {
     cleanupParticles,
     eraseFluidAt,
     setBrushSize,
-    setBrushAmount
+    setBrushAmount,
+    detectWaterLavaReactions,
+    processWaterLavaReactions
 } from "./fluids.js";
 
 import {
@@ -38,7 +40,8 @@ import {
     updateTerrain,
     paintTerrainAt,
     eraseTerrainAt,
-    setTerrainBrushSize
+    setTerrainBrushSize,
+    createStoneAt
 } from "./terrain.js";
 
 import {
@@ -272,6 +275,8 @@ setupSettings({
 // PHYSICS LOOP
 // ----------------------------------
 
+
+
 const particleIterations =
     world.CalculateReasonableParticleIterations(
         1 / 60
@@ -341,6 +346,23 @@ app.ticker.add(() => {
 
     updateFluidBehaviour();
     cleanupParticles(particleLayer);
+
+
+    const reactions = detectWaterLavaReactions();
+
+    for (const reaction of reactions) {
+
+        createStoneAt(
+            reaction.x,
+            reaction.y
+        );
+    }
+
+    processWaterLavaReactions(
+        reactions,
+        particleLayer
+    );
+
     updateParticleGraphics();
 
     

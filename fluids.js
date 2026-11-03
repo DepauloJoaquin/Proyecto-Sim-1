@@ -250,7 +250,9 @@ export {
     cleanupParticles,
     eraseFluidAt,
     setBrushSize,
-    setBrushAmount
+    setBrushAmount,
+    detectWaterLavaReactions,
+    processWaterLavaReactions
     
 };
 
@@ -458,4 +460,116 @@ function eraseFluidAt(x,y,particleLayer){
         Box2D.getPointer(
             particleSystem.GetPositionBuffer()
         ) >> 2;
+}
+
+
+function detectWaterLavaReactions(){
+
+    const usedLavaParticles = new Set();
+    const positions = Box2D.HEAPF32;
+
+    const reactions = []
+
+    const reactionRadius = 20;
+
+    for(let i = 0; i < particleCount ; i++){
+        if(particleTypes[i] !== "water"){
+            continue;
+        }
+
+        const indexA = positionOffset + i *2;
+
+        const waterX = positions[indexA] * METER;
+
+        const waterY = positions[indexA + 1] * METER;
+
+        for(let j = 0; j < particleCount; j++){
+            if (particleTypes[j] !== "lava") {
+                continue;
+            }
+
+            if(usedLavaParticles.has(j)){
+                continue;
+            }
+
+            if (usedLavaParticles.has(j)) {
+            continue;
+            }
+
+            const indexB = positionOffset + j * 2;
+
+            const lavaX = positions[indexB] * METER;
+
+            const lavaY = positions[indexB + 1] * METER;
+            
+            const deltaX = lavaX - waterX;
+
+            const deltaY = lavaY - waterY;
+
+            const distanceSquared = deltaX * deltaX + deltaY * deltaY
+
+
+            if(distanceSquared <= reactionRadius * reactionRadius){
+                reactions.push({
+                    waterIndex: i,
+                    lavaIndex: j,
+                    x: (waterX + lavaX) / 2,
+                    y: (waterY + lavaY) / 2
+                });
+
+                       usedLavaParticles.add(j);
+                           break;
+            }
+
+         
+
+            
+
+
+        }
+        
+        
+    }
+
+    return reactions;
+}
+
+
+function processWaterLavaReactions(reactions,particleLayer){
+    const particlesToDelete = new Set();
+
+    for(const reaction of reactions){
+        particlesToDelete.add(reaction.waterIndex);
+
+        particlesToDelete.add(reaction.lavaIndex);
+
+      
+
+
+    }
+
+    const sortedIndexes = Array.from(particlesToDelete).sort((a,b) => b - a);
+
+    for(const index of sortedIndexes){
+        particleSystem.DestroyParticle(index);
+
+        const graphic =
+        particleGraphics[index];
+
+          particleLayer.removeChild(graphic);
+
+        graphic.destroy();
+
+        particleGraphics.splice(index, 1);
+
+        particleTypes.splice(index, 1);
+    }
+    particleCount =
+    particleGraphics.length;
+
+    positionOffset =
+    Box2D.getPointer(
+        particleSystem.GetPositionBuffer()
+    ) >> 2;
+
 }

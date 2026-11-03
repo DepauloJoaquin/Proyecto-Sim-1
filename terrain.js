@@ -318,6 +318,72 @@ function paintTerrainAt(x, y, terrainType) {
     });
 }
 
+
+function createStoneAt(x, y) {
+
+    const centerX =
+        Math.floor(x / CELL_SIZE);
+
+    const centerY =
+        Math.floor(y / CELL_SIZE);
+
+    const stoneRadius = 2;
+
+    for (
+        let offsetY = -stoneRadius;
+        offsetY <= stoneRadius;
+        offsetY++
+    ) {
+
+        for (
+            let offsetX = -stoneRadius;
+            offsetX <= stoneRadius;
+            offsetX++
+        ) {
+
+            const cellX =
+                centerX + offsetX;
+
+            const cellY =
+                centerY + offsetY;
+
+            if (!isInside(cellX, cellY)) {
+                continue;
+            }
+
+            const distanceSquared =
+                offsetX * offsetX +
+                offsetY * offsetY;
+
+            if (
+                distanceSquared >
+                stoneRadius * stoneRadius
+            ) {
+                continue;
+            }
+
+            if (
+                getCell(cellX, cellY) !== EMPTY
+            ) {
+                continue;
+            }
+
+            setCell(
+                cellX,
+                cellY,
+                terrainMaterials.stone.id,
+                Math.floor(Math.random() * 3)
+            );
+        }
+    }
+}
+
+
+
+
+
+
+
 // Borra tierra y piedra (los bloques no son destructibles)
 function eraseTerrainAt(x, y) {
     forEachCellInBrush(x, y, (cellX, cellY) => {
@@ -508,5 +574,6 @@ export {
     updateTerrain,
     paintTerrainAt,
     eraseTerrainAt,
-    setTerrainBrushSize
+    setTerrainBrushSize,
+    createStoneAt
 };
