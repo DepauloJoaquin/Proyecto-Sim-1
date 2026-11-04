@@ -1,6 +1,7 @@
 import { Graphics, Sprite, Texture } from "pixi.js";
 import { Box2D, METER, world } from "./world.js";
 import { particleSystem } from "./fluids.js";
+import { discoverElement } from "./discoveries.js";
 
 
 // Array donde guardamos todos los bloques de terreno creados.
@@ -376,6 +377,7 @@ function createStoneAt(x, y) {
             );
         }
     }
+    discoverElement("stone");
 }
 
 

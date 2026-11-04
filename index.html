@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -29,7 +30,6 @@
             color: white;
         }
 
-
         /* Main container that holds the canvas, game UI and settings panel */
         #game-container {
             /* Places child elements next to each other horizontally */
@@ -40,8 +40,20 @@
 
             /* Background color of the application area */
             background: #111;
+
+            /* Aligns panels at the top of the container */
+            align-items: flex-start;
         }
 
+        /* Container that groups the canvas and discoveries inventory */
+        #game-area {
+            /* Places the canvas and discoveries vertically */
+            display: flex;
+            flex-direction: column;
+
+            /* Prevents the game area from shrinking */
+            flex-shrink: 0;
+        }
 
         /* Container where the PixiJS canvas is inserted */
         #canvas-container {
@@ -49,13 +61,12 @@
             padding: 20px;
         }
 
-
         /* Main game interface panel */
         #game-ui {
             /* Fixed width of the side panel */
             width: 220px;
 
-            /* Internal spacing between the content and the panel borders */
+            /* Internal spacing between the content and panel borders */
             padding: 20px;
 
             /* Dark gray background */
@@ -63,8 +74,13 @@
 
             /* Small border to visually separate the panel from the canvas */
             border-left: 1px solid #333;
-        }
 
+            /* Includes padding and border in the panel width */
+            box-sizing: border-box;
+
+            /* Prevents the panel from shrinking */
+            flex-shrink: 0;
+        }
 
         /* Styles only h2 elements inside #game-ui */
         #game-ui h2 {
@@ -74,7 +90,6 @@
             /* Changes the heading size */
             font-size: 22px;
         }
-
 
         /* Container for buttons */
         .fluid-buttons,
@@ -89,7 +104,6 @@
             /* Adds space between each button */
             gap: 10px;
         }
-
 
         /* Base style for every button */
         .fluid-button,
@@ -120,7 +134,6 @@
                 border 0.2s;
         }
 
-
         /* Style applied while the mouse is over a button */
         .fluid-button:hover,
         .terrain-button:hover,
@@ -131,7 +144,6 @@
             /* Moves the button 1 pixel upward */
             transform: translateY(-1px);
         }
-
 
         /* Style for the currently selected button */
         .fluid-button.selected,
@@ -144,7 +156,6 @@
             background: #444;
         }
 
-
         /* Images inside fluid buttons */
         .fluid-button img {
             width: 48px;
@@ -152,6 +163,277 @@
             object-fit: contain;
         }
 
+        /* Images inside terrain buttons */
+        .terrain-button img {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+        }
+
+        /* Visual style for terrain buttons that are still locked */
+        .terrain-button.locked {
+            /* Makes the locked button slightly transparent */
+            opacity: 0.6;
+
+            /* Indicates that the button cannot be selected */
+            cursor: not-allowed;
+        }
+
+        /* Prevents hover effects on locked terrain buttons */
+        .terrain-button.locked:hover {
+            background: #2a2a2a;
+            transform: none;
+        }
+
+        /* Question mark shown instead of undiscovered terrain images */
+        .unknown-element {
+            /* Centers the question mark inside its container */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            /* Uses the full width of the button */
+            width: 100%;
+
+            /* Matches the height of terrain images */
+            height: 48px;
+
+            /* Makes the question mark larger */
+            font-size: 36px;
+
+            /* Makes the question mark bold */
+            font-weight: bold;
+
+            /* Uses a gray color for undiscovered elements */
+            color: #888;
+        }
+
+        /* Hides the question mark after discovering the element */
+        .unknown-element[hidden] {
+            display: none;
+        }
+
+        /* Hides terrain images until they are discovered */
+        .terrain-button img[hidden] {
+            display: none;
+        }
+
+        /* Adds spacing above the Terrain section */
+        #game-ui .terrain-title {
+            margin-top: 30px;
+        }
+
+        /* Inventory panel displayed below the game canvas */
+        #inventory-panel {
+            /* Includes padding and borders in the total width */
+            box-sizing: border-box;
+
+            /* Adds spacing around the inventory */
+            margin: 0 20px 20px;
+
+            /* Adds internal spacing */
+            padding: 15px;
+
+            /* Dark background for the inventory */
+            background: #1b1b1b;
+
+            /* Adds a subtle border */
+            border: 1px solid #333;
+
+            /* Rounds the inventory corners */
+            border-radius: 10px;
+        }
+
+        /* Styles the Discoveries heading */
+        #inventory-panel h2 {
+            /* Removes the default top margin */
+            margin-top: 0;
+
+            /* Adds spacing below the heading */
+            margin-bottom: 15px;
+        }
+
+        /* Container that holds all discovered elements */
+        .inventory-elements {
+            /* Places discovered elements next to each other */
+            display: flex;
+
+            /* Moves elements to the next row when necessary */
+            flex-wrap: wrap;
+
+            /* Adds spacing between elements */
+            gap: 10px;
+        }
+
+        /* Base style for each inventory element */
+        .inventory-item {
+            /* Places the image and text next to each other */
+            display: flex;
+
+            /* Centers the image and text vertically */
+            align-items: center;
+
+            /* Adds space between the image and text */
+            gap: 10px;
+
+            /* Adds internal spacing */
+            padding: 10px 15px;
+
+            /* Dark background for each element */
+            background: #252525;
+
+            /* Rounds the element corners */
+            border-radius: 10px;
+        }
+
+        /* Images inside inventory elements */
+        .inventory-item img {
+            width: 45px;
+            height: 45px;
+
+            /* Prevents images from being stretched */
+            object-fit: contain;
+        }
+
+        /* Darkens undiscovered inventory images */
+        .inventory-item.locked img {
+            filter:
+                brightness(0)
+                opacity(0.35);
+        }
+
+        /* Makes undiscovered element names less visible */
+        .inventory-item.locked span {
+            opacity: 0.5;
+        }
+
+        /* Animation applied when an inventory element is unlocked */
+        .inventory-item.unlocked {
+            animation:
+                inventoryUnlock 0.6s ease;
+        }
+
+        /* Makes the unlocked element grow and return to normal size */
+        @keyframes inventoryUnlock {
+            0% {
+                transform: scale(1);
+            }
+
+            40% {
+                transform: scale(1.15);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        /* Discovery popup displayed when a new element is created */
+        .discovery-popup {
+            /* Keeps the popup in the same position on the screen */
+            position: fixed;
+
+            /* Places the popup near the top-left corner */
+            top: 20px;
+            left: 20px;
+
+            /* Allows the popup to adapt to its content */
+            width: auto;
+            height: auto;
+
+            /* Enables Flexbox */
+            display: flex;
+
+            /* Prevents the popup from blocking mouse interactions */
+            pointer-events: none;
+
+            /* Places the popup above other interface elements */
+            z-index: 100;
+        }
+
+        /* Hides the popup when it is not active */
+        .discovery-popup.hidden {
+            display: none;
+        }
+
+        /* Card displayed inside the discovery popup */
+        .discovery-card {
+            /* Sets the card width */
+            width: 240px;
+
+            /* Adds internal spacing */
+            padding: 24px;
+
+            /* Dark background with slight transparency */
+            background: rgba(20, 20, 20, 0.95);
+
+            /* White border around the card */
+            border: 2px solid #ffffff;
+
+            /* Rounds the card corners */
+            border-radius: 16px;
+
+            /* Centers the card content */
+            text-align: center;
+
+            /* Initial animation state */
+            transform: scale(0.5);
+            opacity: 0;
+
+            /* Plays the discovery animation */
+            animation:
+                discoveryAppear 0.4s ease forwards;
+        }
+
+        /* Title displayed at the top of the discovery card */
+        .discovery-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 16px;
+        }
+
+        /* Image of the newly discovered element */
+        .discovery-icon {
+            width: 80px;
+            height: 80px;
+
+            /* Keeps the image proportions */
+            object-fit: contain;
+
+            /* Adds spacing below the image */
+            margin-bottom: 12px;
+        }
+
+        /* Name of the discovered element */
+        .discovery-name {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 6px;
+        }
+
+        /* Type of the discovered element */
+        .discovery-type {
+            font-size: 14px;
+            opacity: 0.7;
+        }
+
+        /* Animation played when a new discovery appears */
+        @keyframes discoveryAppear {
+            0% {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+
+            70% {
+                transform: scale(1.1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
 
         /* Settings panel */
         #settings-panel {
@@ -174,12 +456,6 @@
             display: none;
         }
 
-
-        #game-ui .terrain-title {
-            margin-top: 30px;
-        }
-
-
         /*
         This style only applies when the element has:
 
@@ -192,10 +468,95 @@
             display: block;
         }
 
-
         /* Adds vertical spacing between individual settings */
         .setting {
             margin-bottom: 20px;
+        }
+
+        /* Simulation metrics panel */
+        #metrics-panel {
+            /* Sets the panel width */
+            width: 220px;
+
+            /* Adds internal spacing */
+            padding: 20px;
+
+            /* Dark background */
+            background: #1b1b1b;
+
+            /* Separates the panel from the other elements */
+            border-left: 1px solid #333;
+
+            /* Includes padding and border in the total width */
+            box-sizing: border-box;
+
+            /* Prevents the panel from shrinking */
+            flex-shrink: 0;
+        }
+
+        /* Removes the top margin of the metrics heading */
+        #metrics-panel h2 {
+            margin-top: 0;
+        }
+
+        /* Adds spacing between individual metrics */
+        .metric {
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        /* Container for the water temperature indicator */
+        .temperature-metric {
+            margin-top: 20px;
+        }
+
+        /* Label displayed above the temperature bar */
+        .temperature-label {
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        /* Background of the temperature bar */
+        .temperature-bar {
+            width: 100%;
+            height: 18px;
+
+            background: #333;
+
+            border-radius: 10px;
+
+            /* Prevents the fill from extending outside the bar */
+            overflow: hidden;
+        }
+
+        /* Colored portion that represents the water temperature */
+        #temperatureFill {
+            /* Starts empty because the temperature is updated by JavaScript */
+            width: 0%;
+
+            height: 100%;
+
+            /* Initial temperature color */
+            background: #3399ff;
+
+            border-radius: 10px;
+
+            /* Smoothly animates temperature changes */
+            transition:
+                width 0.2s,
+                background-color 0.2s;
+        }
+
+        /* Temperature labels displayed below the bar */
+        .temperature-scale {
+            /* Places labels on the same horizontal line */
+            display: flex;
+
+            /* Distributes labels across the available width */
+            justify-content: space-between;
+
+            margin-top: 4px;
+            font-size: 11px;
         }
 
     </style>
@@ -204,16 +565,44 @@
 
 </head>
 
-
 <body>
 
+    <!-- Main container for the game and its interface -->
     <div id="game-container">
 
+        <!-- Groups the simulation and discoveries -->
+        <div id="game-area">
 
-        <!-- PIXI CANVAS -->
-        <div id="canvas-container">
+            <!-- Container where the PixiJS canvas is inserted -->
+            <div id="canvas-container">
+            </div>
+
+            <!-- Discoveries inventory displayed below the canvas -->
+            <div id="inventory-panel">
+
+                <h2>Discoveries</h2>
+
+                <!-- Container for discovered elements -->
+                <div class="inventory-elements">
+
+                    <!-- Stone starts locked -->
+                    <div
+                        id="inventory-stone"
+                        class="inventory-item locked"
+                    >
+                        <img
+                            src="./assets/stone.png"
+                            alt="Stone"
+                        >
+
+                        <span>???</span>
+                    </div>
+
+                </div>
+
+            </div>
+
         </div>
-
 
         <!-- GAME UI -->
         <div id="game-ui">
@@ -224,7 +613,7 @@
                 Selected fluid: water
             </p>
 
-
+            <!-- Fluid selection buttons -->
             <div class="fluid-buttons">
 
                 <button
@@ -237,7 +626,6 @@
                     >
                 </button>
 
-
                 <button
                     id="lavaButton"
                     class="fluid-button"
@@ -247,7 +635,6 @@
                         alt="Lava"
                     >
                 </button>
-
 
                 <button
                     id="steamButton"
@@ -261,6 +648,7 @@
 
             </div>
 
+            <!-- TERRAIN -->
 
             <h2 class="terrain-title">
                 Terrain
@@ -270,29 +658,40 @@
                 Selected terrain: Dirt
             </p>
 
-
+            <!-- Terrain selection buttons -->
             <div class="terrain-buttons">
 
+                <!-- Dirt is available from the beginning -->
                 <button
                     id="dirtButton"
                     class="terrain-button"
                 >
-                    Dirt
+                    <img
+                        src="./assets/dirt.png"
+                        alt="Dirt"
+                    >
                 </button>
 
-
+                <!-- Stone starts locked and displays a question mark -->
                 <button
                     id="stoneButton"
-                    class="terrain-button"
+                    class="terrain-button locked"
+                    disabled
                 >
-                    Stone
+                    <!-- Question mark displayed before discovery -->
+                    <span class="unknown-element">?</span>
+
+                    <!-- Stone image displayed after discovery -->
+                    <img
+                        src="./assets/stone.png"
+                        alt="Stone"
+                        hidden
+                    >
                 </button>
-
-
-               
 
             </div>
 
+            <!-- TOOLS -->
 
             <h3 class="tool-title">
                 Tools
@@ -302,7 +701,7 @@
                 Selected tool: Fluid
             </p>
 
-
+            <!-- Tool selection buttons -->
             <div class="tools-buttons">
 
                 <button
@@ -312,14 +711,12 @@
                     Fluid
                 </button>
 
-
                 <button
                     id="terrainToolButton"
                     class="tool-button"
                 >
                     Terrain
                 </button>
-
 
                 <button
                     id="eraseToolButton"
@@ -328,10 +725,10 @@
                     Erase Fluid
                 </button>
 
-
                 <button
-                    id = "eraseTerrainButton"
-                    class="tool-button">
+                    id="eraseTerrainButton"
+                    class="tool-button"
+                >
                     Erase Terrain
                 </button>
 
@@ -339,12 +736,11 @@
 
         </div>
 
+        <!-- SETTINGS PANEL -->
 
-        <!-- SETTINGS -->
         <div id="settings-panel">
 
             <h2>Settings</h2>
-
 
             <!-- GRAVITY -->
             <div class="setting">
@@ -363,7 +759,6 @@
                 >
 
             </div>
-
 
             <!-- PARTICLE RADIUS -->
             <div class="setting">
@@ -384,7 +779,6 @@
 
             </div>
 
-
             <!-- WATER AMOUNT -->
             <div class="setting">
 
@@ -403,7 +797,6 @@
                 >
 
             </div>
-
 
             <!-- BRUSH SIZE -->
             <div class="setting">
@@ -424,7 +817,6 @@
 
             </div>
 
-
             <!-- BRUSH AMOUNT -->
             <div class="setting">
 
@@ -444,7 +836,6 @@
 
             </div>
 
-
             <!-- FPS -->
             <div class="setting">
 
@@ -458,7 +849,6 @@
                 >
 
             </div>
-
 
             <!-- GRID -->
             <div class="setting">
@@ -476,8 +866,119 @@
 
         </div>
 
+        <!-- SIMULATION METRICS -->
+
+        <div id="metrics-panel">
+
+            <h2>Simulation Metrics</h2>
+
+            <div class="metric">
+                FPS:
+                <span id="metricFPS">0</span>
+            </div>
+
+            <div class="metric">
+                Total Particles:
+                <span id="metricParticles">0</span>
+            </div>
+
+            <div class="metric">
+                Water:
+                <span id="metricWater">0</span>
+            </div>
+
+            <div class="metric">
+                Lava:
+                <span id="metricLava">0</span>
+            </div>
+
+            <div class="metric">
+                Steam:
+                <span id="metricSteam">0</span>
+            </div>
+
+            <div class="metric">
+                Reaction Checks:
+                <span id="metricReactionChecks">0</span>
+            </div>
+
+            <div class="metric">
+                Reactions:
+                <span id="metricReactions">0</span>
+            </div>
+
+            <div class="metric">
+                Frame Time:
+                <span id="metricFrameTime">0</span> ms
+            </div>
+
+            <!-- WATER TEMPERATURE -->
+
+            <div class="temperature-metric">
+
+                <div class="temperature-label">
+                    Water Temperature:
+                    <span id="metricWaterTemperature">20</span> °C
+                </div>
+
+                <div class="temperature-bar">
+                    <div id="temperatureFill"></div>
+                </div>
+
+                <div class="temperature-scale">
+                    <span>0°C</span>
+                    <span>50°C</span>
+                    <span>100°C</span>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- DISCOVERY POPUP -->
+
+    <!-- Popup displayed when the player discovers a new element -->
+    <div
+        id="discovery-popup"
+        class="discovery-popup hidden"
+    >
+
+        <!-- Card containing the discovery information -->
+        <div class="discovery-card">
+
+            <div class="discovery-title">
+                NEW DISCOVERY!
+            </div>
+
+            <!-- Image of the discovered element -->
+            <img
+                id="discoveryIcon"
+                class="discovery-icon"
+                src=""
+                alt=""
+            >
+
+            <!-- Name of the discovered element -->
+            <div
+                id="discoveryName"
+                class="discovery-name"
+            >
+                New Element
+            </div>
+
+            <!-- Category of the discovered element -->
+            <div
+                id="discoveryType"
+                class="discovery-type"
+            >
+                New Fluid
+            </div>
+
+        </div>
+
     </div>
 
 </body>
-
 </html>

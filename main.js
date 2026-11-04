@@ -30,7 +30,12 @@ import {
     setBrushSize,
     setBrushAmount,
     detectWaterLavaReactions,
-    processWaterLavaReactions
+    processWaterLavaReactions,
+    getFluidMetrics,
+    getReactionChecks,
+    updateWaterTemperature,
+    getTemperatureMetrics,
+    createPendingSteam
 } from "./fluids.js";
 
 import {
@@ -68,6 +73,20 @@ import{
     loadMetaballShader,
     metaballVertexShader
 } from "./metaballs.js";
+
+import{
+    setupMetrics,
+    updateMetrics,
+}from "./metrics.js";
+
+
+import {
+    discoverElement
+} from "./discoveries.js";
+
+
+
+
 
 
 console.log("LiquidFun loaded");
@@ -223,6 +242,8 @@ createParticleGraphics(particleLayer);
 
 setupDebug(app);
 
+setupMetrics();
+
 
 // ----------------------------------
 // SETTINGS
@@ -284,12 +305,17 @@ const particleIterations =
 
 app.ticker.add(() => {
 
+    const frameStart = performance.now();
+
     world.Step(
         1 / 60,
         8,
         3,
-        particleIterations
+        particleIterations,
+        
     );
+
+    createPendingSteam(particleLayer)
 
     // Create particles while the mouse button is held down
 
@@ -345,7 +371,11 @@ app.ticker.add(() => {
     updateTerrain();
 
     updateFluidBehaviour();
+    updateWaterTemperature();
+
     cleanupParticles(particleLayer);
+
+  
 
 
     const reactions = detectWaterLavaReactions();
@@ -356,16 +386,15 @@ app.ticker.add(() => {
             reaction.x,
             reaction.y
         );
+        discoverElement("stone");
     }
-
+    
     processWaterLavaReactions(
         reactions,
         particleLayer
     );
 
     updateParticleGraphics();
-
-    
 
     app.renderer.render({
         container:particleLayer,
@@ -374,6 +403,26 @@ app.ticker.add(() => {
     })
 
     updateDebug();
+
+
+    
+    const fluidMetrics = getFluidMetrics();
+
+    const temperatureMetrics = getTemperatureMetrics();
+
+    const frameTime = performance.now() - frameStart;
+
+     updateMetrics({
+        fps: app.ticker.FPS,
+        particles: fluidMetrics.total,
+        water: fluidMetrics.water,
+        lava: fluidMetrics.lava,
+        steam: fluidMetrics.steam,
+        reactionChecks: getReactionChecks(),
+        reactions: reactions.length,
+        frameTime: frameTime,
+        maxWaterTemperature: temperatureMetrics.maxWaterTemperature
+    })
 });
 
 app.stage.eventMode = "static";

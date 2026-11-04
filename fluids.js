@@ -1,5 +1,6 @@
 import { Graphics } from "pixi.js";
 import { Box2D, METER, world } from "./world.js";
+import { discoverElement} from "./discoveries.js";
 
 //This is the container to manage the particles
 
@@ -31,6 +32,35 @@ const waterSpawnY = 1;
 // Stores the type of every LiquidFun particle
 const particleTypes = [];
 
+const particleTemperatures = [];
+
+
+const fluids = {
+    water:{
+         color: "#3399ff",
+         velocity: new Box2D.b2Vec2(0,0),
+         gravityScale: 1,
+         viscosity: 0,
+         temperature: 20
+    },
+
+     lava: {
+        color: "#ff5a1f",
+        velocity: new Box2D.b2Vec2(0, 0.5),
+        gravityScale: 1.2,
+        viscosity: 0.08,
+        temperature: 900
+    },
+
+       steam: {
+        color: "#dddddd",
+        velocity: new Box2D.b2Vec2(0, -2),
+        gravityScale: -0.5,
+        viscosity: 0,
+        temperature: 120
+    }
+}
+
 watershape.SetAsBox(
     waterWidth,
     waterWeight,
@@ -52,6 +82,8 @@ const initialParticleCount =
 // Mark all startup particles as water
 for (let i = 0; i < initialParticleCount; i++) {
     particleTypes[i] = "water";
+
+    particleTemperatures[i] = fluids.water.temperature;
 }
 
 
@@ -67,28 +99,7 @@ const particleGraphics = [];
 
 
 
-const fluids = {
-    water:{
-         color: "#3399ff",
-         velocity: new Box2D.b2Vec2(0,0),
-         gravityScale: 1,
-         viscocity: 0
-    },
 
-     lava: {
-        color: "#ff5a1f",
-        velocity: new Box2D.b2Vec2(0, 0.5),
-        gravityScale: 1.2,
-        viscocity: 0.08
-    },
-
-       steam: {
-        color: "#dddddd",
-        velocity: new Box2D.b2Vec2(0, -2),
-        gravityScale: -0.5,
-        viscosity: 0
-    }
-}
 
 
 let brushSize = 30;
@@ -100,6 +111,36 @@ function setBrushSize(value) {
 
 function setBrushAmount(value) {
     brushAmount = Number(value);
+}
+
+
+function getFluidMetrics(){
+    let water = 0;
+    let lava = 0;
+    let steam = 0;
+
+    for(let i = 0; i < particleCount; i++){
+        const fluidType = particleTypes[i];
+
+        if(fluidType === "water"){
+            water++;
+        }
+
+        if(fluidType === "lava"){
+            lava++;
+        }
+
+        if(fluidType === "steam"){
+            steam++;
+        }
+    }
+
+    return{
+        total: particleCount,
+        water,
+        lava,
+        steam
+    };
 }
 
 
@@ -160,6 +201,8 @@ function resetWater(particleLayer, newRadius) {
     // Remove the type information from the old particle system
     particleTypes.length = 0;
 
+    particleTemperatures.length = 0;
+
     // 2. Delete the entire old LiquidFun particle system
 
     world.DestroyParticleSystem(particleSystem);
@@ -197,7 +240,11 @@ function resetWater(particleLayer, newRadius) {
     // Mark all initial particles as water
     for(let i = 0; i < initialParticleCount; i++){
         particleTypes[i] = "water";
+        particleTemperatures[i] = fluids.water.temperature;
     }
+
+    
+
 
     // 6. Recreate Pixi graphics
 
@@ -252,7 +299,12 @@ export {
     setBrushSize,
     setBrushAmount,
     detectWaterLavaReactions,
-    processWaterLavaReactions
+    processWaterLavaReactions,
+    getFluidMetrics,
+    getReactionChecks,
+    updateWaterTemperature,
+    getTemperatureMetrics,
+    createPendingSteam
     
 };
 
@@ -270,6 +322,8 @@ function createFluidAt(x,y,fluidType){
     const particleIndex = particleSystem.CreateParticle(particleDef);
 
     particleTypes[particleIndex] = fluidType;
+
+    particleTemperatures[particleIndex] = fluids[fluidType].temperature;
 }
 
 
@@ -394,6 +448,8 @@ function cleanupParticles(particleLayer){
             particleGraphics.splice(i, 1);
 
             particleTypes.splice(i, 1);
+
+            particleTemperatures.splice(i, 1);
         }
     }
       // Keep our graphic count synchronized
@@ -451,6 +507,8 @@ function eraseFluidAt(x,y,particleLayer){
             particleGraphics.splice(i, 1);
 
             particleTypes.splice(i, 1);
+
+            particleTemperatures.splice(i, 1);
         }
     }
     particleCount =
@@ -463,7 +521,12 @@ function eraseFluidAt(x,y,particleLayer){
 }
 
 
+let reactionChecks = 0;
+
+
+
 function detectWaterLavaReactions(){
+    reactionChecks = 0;
 
     const usedLavaParticles = new Set();
     const positions = Box2D.HEAPF32;
@@ -488,10 +551,6 @@ function detectWaterLavaReactions(){
                 continue;
             }
 
-            if(usedLavaParticles.has(j)){
-                continue;
-            }
-
             if (usedLavaParticles.has(j)) {
             continue;
             }
@@ -501,6 +560,8 @@ function detectWaterLavaReactions(){
             const lavaX = positions[indexB] * METER;
 
             const lavaY = positions[indexB + 1] * METER;
+
+            reactionChecks++;
             
             const deltaX = lavaX - waterX;
 
@@ -535,41 +596,247 @@ function detectWaterLavaReactions(){
 }
 
 
-function processWaterLavaReactions(reactions,particleLayer){
-    const particlesToDelete = new Set();
+const pendingSteam = [];
 
-    for(const reaction of reactions){
-        particlesToDelete.add(reaction.waterIndex);
+function createPendingSteam(particleLayer) {
 
-        particlesToDelete.add(reaction.lavaIndex);
+    if (pendingSteam.length === 0) return;
 
-      
+    for (const position of pendingSteam) {
 
+        createFluidAt(
+            position.x,
+            position.y - 15,
+            "steam"
+        );
 
+        discoverElement("steam");
     }
 
-    const sortedIndexes = Array.from(particlesToDelete).sort((a,b) => b - a);
+    pendingSteam.length = 0;
 
-    for(const index of sortedIndexes){
+    syncParticleGraphics(particleLayer);
+}
+
+
+function processWaterLavaReactions(reactions, particleLayer) {
+
+    const particlesToDelete = new Set();
+
+    for (const reaction of reactions) {
+
+        particlesToDelete.add(reaction.waterIndex);
+        particlesToDelete.add(reaction.lavaIndex);
+
+        pendingSteam.push({
+            x: reaction.x,
+            y: reaction.y
+        });
+    }
+
+    const sortedIndexes = Array.from(particlesToDelete)
+        .sort((a, b) => b - a);
+
+    for (const index of sortedIndexes) {
+
         particleSystem.DestroyParticle(index);
 
-        const graphic =
-        particleGraphics[index];
+        const graphic = particleGraphics[index];
 
-          particleLayer.removeChild(graphic);
-
+        particleLayer.removeChild(graphic);
         graphic.destroy();
 
         particleGraphics.splice(index, 1);
-
         particleTypes.splice(index, 1);
+        particleTemperatures.splice(index, 1);
     }
-    particleCount =
-    particleGraphics.length;
+
+    particleCount = particleGraphics.length;
 
     positionOffset =
-    Box2D.getPointer(
-        particleSystem.GetPositionBuffer()
-    ) >> 2;
+        Box2D.getPointer(
+            particleSystem.GetPositionBuffer()
+        ) >> 2;
+}
 
+
+function getReactionChecks(){
+    return reactionChecks;
+}
+
+
+function updateWaterTemperature() {
+
+    const positions = Box2D.HEAPF32;
+
+    const heatRadius = 30;
+    const heatAmount = 2;
+    const coolingAmount = 0.2;
+
+    for (let i = 0; i < particleCount; i++) {
+
+        if (particleTypes[i] !== "water") {
+            continue;
+        }
+
+        const waterIndex =
+            positionOffset + i * 2;
+
+        const waterX =
+            positions[waterIndex] * METER;
+
+        const waterY =
+            positions[waterIndex + 1] * METER;
+
+        let isBeingHeated = false;
+
+        for (let j = 0; j < particleCount; j++) {
+
+            if (particleTypes[j] !== "lava") {
+                continue;
+            }
+
+            const lavaIndex =
+                positionOffset + j * 2;
+
+            const lavaX =
+                positions[lavaIndex] * METER;
+
+            const lavaY =
+                positions[lavaIndex + 1] * METER;
+
+            const deltaX =
+                lavaX - waterX;
+
+            const deltaY =
+                lavaY - waterY;
+
+            const distanceSquared =
+                deltaX * deltaX +
+                deltaY * deltaY;
+
+            if (
+                distanceSquared <=
+                heatRadius * heatRadius
+            ) {
+
+                isBeingHeated = true;
+
+                particleTemperatures[i] +=
+                    heatAmount;
+
+                if (
+                    particleTemperatures[i] >= 100
+                ) {
+                    convertWaterToSteam(i);
+                    updateParticleGraphicToSteam(i);
+                }
+
+                break;
+            }
+        }
+
+        if (!isBeingHeated) {
+
+            particleTemperatures[i] -=
+                coolingAmount;
+
+            if (
+                particleTemperatures[i] <
+                fluids.water.temperature
+            ) {
+                particleTemperatures[i] =
+                    fluids.water.temperature;
+            }
+        }
+    }
+}
+
+function convertWaterToSteam(i) {
+
+    particleTypes[i] = "steam";
+
+    particleTemperatures[i] =
+        fluids.steam.temperature;
+
+    const velocities =
+        Box2D.HEAPF32;
+
+    const velocityOffset =
+        Box2D.getPointer(
+            particleSystem.GetVelocityBuffer()
+        ) >> 2;
+
+    const velocityIndex =
+        velocityOffset + i * 2;
+
+    velocities[velocityIndex] =
+        fluids.steam.velocity.x;
+
+    velocities[velocityIndex + 1] =
+        fluids.steam.velocity.y;
+
+    discoverElement("steam")
+}
+
+function updateParticleGraphicToSteam(i) {
+
+    const particleGraphic =
+        particleGraphics[i];
+
+    particleGraphic.clear();
+
+    const visualRadius =
+        particleSystem.GetRadius() * METER * 1.5;
+
+    particleGraphic
+        .circle(0, 0, visualRadius)
+        .fill(fluids.steam.color);
+}
+
+function getTemperatureMetrics() {
+
+    let waterTemperatureTotal = 0;
+    let waterCount = 0;
+    let maxWaterTemperature = 0;
+
+    for (let i = 0; i < particleCount; i++) {
+
+        if (particleTypes[i] !== "water") {
+            continue;
+        }
+
+        const temperature =
+            particleTemperatures[i];
+
+        waterTemperatureTotal +=
+            temperature;
+
+        waterCount++;
+
+        if (
+            temperature >
+            maxWaterTemperature
+        ) {
+            maxWaterTemperature =
+                temperature;
+        }
+    }
+
+    let averageWaterTemperature;
+
+    if (waterCount > 0) {
+
+        averageWaterTemperature =
+            waterTemperatureTotal / waterCount;
+
+    } else {
+
+        averageWaterTemperature = 0;
+    }
+
+    return {
+        averageWaterTemperature,
+        maxWaterTemperature
+    };
 }
