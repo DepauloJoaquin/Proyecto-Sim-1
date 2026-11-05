@@ -840,3 +840,8 @@ function getTemperatureMetrics() {
         maxWaterTemperature
     };
 }
+
+
+export function getParticleTypes() {
+    return particleTypes;
+}

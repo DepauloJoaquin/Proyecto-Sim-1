@@ -46,7 +46,8 @@ import {
     paintTerrainAt,
     eraseTerrainAt,
     setTerrainBrushSize,
-    createStoneAt
+    createStoneAt,
+    wetDirtAt
 } from "./terrain.js";
 
 import {
@@ -60,14 +61,13 @@ import {
     updateDebug
 } from "./debug.js";
 
-import "./ui.js";
 
-import{
+import {
+    setupUI,
     getCurrentFluid,
     getCurrentTerrain,
     getCurrentTool
 } from "./ui.js";
-
 
 import{
     loadMetaballShader,
@@ -81,11 +81,14 @@ import{
 
 
 import {
-    discoverElement
+    discoverElement,
+    setupDiscoveries
 } from "./discoveries.js";
 
 
-
+import {
+    detectWaterDirtInteractions
+} from "./interactions.js";
 
 
 
@@ -234,6 +237,9 @@ createTerrainBlock(
 generateTerrain();
 
 
+
+
+
 // ----------------------------------
 // WATER GRAPHICS
 // ----------------------------------
@@ -243,6 +249,9 @@ createParticleGraphics(particleLayer);
 setupDebug(app);
 
 setupMetrics();
+
+setupDiscoveries();
+setupUI();
 
 
 // ----------------------------------
@@ -371,7 +380,10 @@ app.ticker.add(() => {
     updateTerrain();
 
     updateFluidBehaviour();
+
     updateWaterTemperature();
+
+    detectWaterDirtInteractions();
 
     cleanupParticles(particleLayer);
 

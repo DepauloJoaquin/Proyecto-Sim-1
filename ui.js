@@ -1,144 +1,184 @@
 let currentFluid = "water";
 let currentTerrain = "dirt";
-let currentTool = "fluid"
+let currentTool = "fluid";
 
-const waterButton = document.getElementById("waterButton");
-const lavaButton = document.getElementById("lavaButton");
-const steamButton = document.getElementById("steamButton");
+let fluidButtons;
+let terrainButtons;
 
-const dirtButton = document.getElementById("dirtButton");
-const stoneButton = document.getElementById("stoneButton");
-const eraseTerrainButton = document.getElementById("eraseTerrainButton");
+let fluidToolButton;
+let terrainToolButton;
+let eraseToolButton;
+let eraseTerrainButton;
 
-const fluidToolButton = document.getElementById("fluidToolButton");
-const terrainToolButton = document.getElementById("terrainToolButton");
-const eraseToolButton = document.getElementById("eraseToolButton");
+let selectedFluidText;
+let selectedTerrainText;
+let selectedToolText;
+
+function setupUI(){
+
+    fluidButtons =
+        document.querySelectorAll(".fluid-button");
+
+    terrainButtons =
+        document.querySelectorAll(".terrain-button");
 
 
-const selectedFluidText = document.getElementById("selectedFluidText");
-const selectedTerrainText = document.getElementById("selectedTerrainText");
-const selectedToolText = document.getElementById("selectedToolText");
+    fluidToolButton =
+        document.getElementById("fluidToolButton");
+
+    terrainToolButton =
+        document.getElementById("terrainToolButton");
+
+    eraseToolButton =
+        document.getElementById("eraseToolButton");
+
+    eraseTerrainButton =
+        document.getElementById("eraseTerrainButton");
+
+
+    selectedFluidText =
+        document.getElementById("selectedFluidText");
+
+    selectedTerrainText =
+        document.getElementById("selectedTerrainText");
+
+    selectedToolText =
+        document.getElementById("selectedToolText");
+
+
+    // Fluid buttons
+
+    fluidButtons.forEach(button => {
+
+        button.addEventListener("click", () => {
+
+            const fluid =
+                button.dataset.elementId;
+
+            selectFluid(fluid);
+        });
+    });
+
+
+    // Terrain buttons
+
+    terrainButtons.forEach(button => {
+
+        button.addEventListener("click", () => {
+
+            const terrain =
+                button.dataset.elementId;
+
+            selectTerrain(terrain);
+        });
+    });
+
+
+    // Tool buttons
+
+    fluidToolButton.addEventListener("click", () => {
+        selectTool("fluid");
+    });
+
+    terrainToolButton.addEventListener("click", () => {
+        selectTool("terrain");
+    });
+
+    eraseToolButton.addEventListener("click", () => {
+        selectTool("eraseFluid");
+    });
+
+    eraseTerrainButton.addEventListener("click", () => {
+        selectTool("eraseTerrain");
+    });
+
+
+    // Default selections
+
+    selectFluid("water");
+    selectTerrain("dirt");
+    selectTool("fluid");
+}
+
 
 
 function selectFluid(fluid){
+
     currentFluid = fluid;
 
-    selectedFluidText.textContent = `Selected fluid: ${fluid}`;
-    waterButton.classList.remove("selected");
-    lavaButton.classList.remove("selected");
-    steamButton.classList.remove("selected");
+    selectedFluidText.textContent =
+        `Selected fluid: ${fluid}`;
 
-    if (fluid === "water") {
-    waterButton.classList.add("selected");
-    }
+    fluidButtons.forEach(button => {
 
-    if (fluid === "lava") {
-        lavaButton.classList.add("selected");
-    }
+        button.classList.remove("selected");
+    });
 
-    if (fluid === "steam") {
-        steamButton.classList.add("selected");
+
+    const selectedButton =
+        document.getElementById(
+            `${fluid}Button`
+        );
+
+    if(selectedButton){
+        selectedButton.classList.add("selected");
     }
-    
- 
 }
-
-waterButton.addEventListener("click",() =>{
-    selectFluid("water")
-})
-
-lavaButton.addEventListener("click",() =>{
-    selectFluid("lava")
-})
-
-steamButton.addEventListener("click",() =>{
-    selectFluid("steam")
-})
-
-selectFluid("water")
-
 
 
 function selectTerrain(terrain){
+
     currentTerrain = terrain;
 
-    selectedTerrainText.textContent = `Selected terrain: ${terrain}`;
+    selectedTerrainText.textContent =
+        `Selected terrain: ${terrain}`;
 
-    dirtButton.classList.remove("selected");
-    stoneButton.classList.remove("selected");
+    terrainButtons.forEach(button => {
+
+        button.classList.remove("selected");
+    });
 
 
-    if(terrain === "dirt"){
-        dirtButton.classList.add("selected");
-    }
+    const selectedButton =
+        document.getElementById(
+            `${terrain}Button`
+        );
 
-    if(terrain === "stone"){
-        stoneButton.classList.add("selected");
+    if(selectedButton){
+        selectedButton.classList.add("selected");
     }
 }
 
 
-dirtButton.addEventListener("click",() =>{
-    selectTerrain("dirt")
-})
-
-stoneButton.addEventListener("click",() =>{
-    selectTerrain("stone")
-})
-
-selectTerrain("dirt")
-
 function selectTool(tool){
+
     currentTool = tool;
-    selectedToolText.textContent = `Selected tool: ${tool}`;
+
+    selectedToolText.textContent =
+        `Selected tool: ${tool}`;
 
     fluidToolButton.classList.remove("selected");
-    
     terrainToolButton.classList.remove("selected");
-    
     eraseToolButton.classList.remove("selected");
-
-    // Erase Terrain también es una herramienta, así que se desmarca acá
     eraseTerrainButton.classList.remove("selected");
 
+
     if(tool === "fluid"){
-        fluidToolButton.classList.add("selected")
+        fluidToolButton.classList.add("selected");
     }
 
     if(tool === "terrain"){
-        terrainToolButton.classList.add("selected")
+        terrainToolButton.classList.add("selected");
     }
 
     if(tool === "eraseFluid"){
-        eraseToolButton.classList.add("selected")
+        eraseToolButton.classList.add("selected");
     }
 
-    // Marca el botón Erase Terrain cuando está elegido
     if(tool === "eraseTerrain"){
-        eraseTerrainButton.classList.add("selected")
+        eraseTerrainButton.classList.add("selected");
     }
-
 }
-
-
-fluidToolButton.addEventListener("click",()=>{
-    selectTool("fluid")
-})
-
-terrainToolButton.addEventListener("click",()=>{
-    selectTool("terrain")
-})
-
-eraseToolButton.addEventListener("click",()=>{
-    selectTool("eraseFluid")
-})
-
-// Al hacer click en Erase Terrain se elige la herramienta de borrar terreno
-eraseTerrainButton.addEventListener("click",()=>{
-    selectTool("eraseTerrain")
-})
-
-selectTool("fluid")
 
 
 export function getCurrentFluid(){
@@ -152,3 +192,7 @@ export function getCurrentTerrain(){
 export function getCurrentTool(){
     return currentTool;
 }
+
+export {
+    setupUI
+};

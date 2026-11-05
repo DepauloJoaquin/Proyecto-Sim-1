@@ -104,7 +104,8 @@ const EMPTY = 0;
 const terrainMaterials = {
     dirt:  { id: 1, colors: ["#8b5a2b", "#7d5026", "#96633a"], falls: true,  destructible: true,  solid: true },
     stone: { id: 2, colors: ["#7a7a7a", "#6c6c6c", "#858585"], falls: false, destructible: true,  solid: true },
-    block: { id: 3, colors: null, falls: false, destructible: false, solid: false } // paredes/piso de createTerrainBlock
+    block: { id: 3, colors: null, falls: false, destructible: false, solid: false }, // paredes/piso de createTerrainBlock
+    mud:{id:4,colors:[ "#5c4033", "#6b4b3a", "#4b362b"], falls: true, destructible: true, solid: true}
 };
 
 // Busca materiales por id y pasa los colores a [r, g, b]
@@ -381,6 +382,98 @@ function createStoneAt(x, y) {
 }
 
 
+function wetDirtAt(x, y) {
+
+    const centerX =
+        Math.floor(x / CELL_SIZE);
+
+    const centerY =
+        Math.floor(y / CELL_SIZE);
+
+    const wetRadius = 2;
+
+    let mudCreated = false;
+
+    for (
+        let offsetY = -wetRadius;
+        offsetY <= wetRadius;
+        offsetY++
+    ) {
+
+        for (
+            let offsetX = -wetRadius;
+            offsetX <= wetRadius;
+            offsetX++
+        ) {
+
+            const cellX =
+                centerX + offsetX;
+
+            const cellY =
+                centerY + offsetY;
+
+            if (!isInside(cellX, cellY)) {
+                continue;
+            }
+
+            const distanceSquared =
+                offsetX * offsetX +
+                offsetY * offsetY;
+
+            if (
+                distanceSquared >
+                wetRadius * wetRadius
+            ) {
+                continue;
+            }
+
+            if (
+                getCell(cellX, cellY) !==
+                terrainMaterials.dirt.id
+            ) {
+                continue;
+            }
+
+            const mudX =
+                cellX * CELL_SIZE;
+
+            const mudY =
+                cellY * CELL_SIZE;
+
+            createMudAt(
+                mudX,
+                mudY
+            );
+
+            mudCreated = true;
+        }
+    }
+
+    return mudCreated;
+}
+
+
+function createMudAt(x, y) {
+
+    const cellX =
+        Math.floor(x / CELL_SIZE);
+
+    const cellY =
+        Math.floor(y / CELL_SIZE);
+
+    if (!isInside(cellX, cellY)) {
+        return false;
+    }
+
+    setCell(
+        cellX,
+        cellY,
+        terrainMaterials.mud.id,
+        Math.floor(Math.random() * 3)
+    );
+
+    return true;
+}
 
 
 
@@ -577,5 +670,7 @@ export {
     paintTerrainAt,
     eraseTerrainAt,
     setTerrainBrushSize,
-    createStoneAt
+    createStoneAt,
+    wetDirtAt,
+    createMudAt
 };
