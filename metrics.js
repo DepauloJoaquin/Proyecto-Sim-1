@@ -7,6 +7,7 @@ let metricParticles;
 let metricWater;
 let metricLava;
 let metricSteam;
+let metricOil;
 let metricReactionChecks;
 
 let metricReactions;
@@ -28,6 +29,8 @@ function setupMetrics(){
     metricLava = document.getElementById("metricLava");
 
     metricSteam = document.getElementById("metricSteam");
+    
+    metricOil = document.getElementById("metricOil");
 
     metricReactionChecks = document.getElementById("metricReactionChecks");
 
@@ -48,6 +51,7 @@ function updateMetrics({
     water,
     lava,
     steam,
+    oil,
     reactionChecks,
     reactions,
     frameTime,
@@ -65,6 +69,8 @@ function updateMetrics({
     metricLava.textContent = lava;
 
     metricSteam.textContent = steam;
+
+    metricOil.textContent = oil;
 
     metricReactionChecks.textContent = reactionChecks;
 

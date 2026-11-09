@@ -5,11 +5,13 @@ import {
 
 import {
     particleSystem,
-    getParticleTypes
+    getParticleTypes,
+    createFluidAt
 } from "./fluids.js";
 
 import {
-    wetDirtAt
+    wetDirtAt,
+    getExposedOilDeposits
 } from "./terrain.js";
 
 import {
@@ -60,6 +62,42 @@ function detectWaterDirtInteractions() {
 }
 
 
+function processOilDeposits() {
+
+    const deposits =
+        getExposedOilDeposits();
+
+    for (
+        const deposit
+        of deposits
+    ) {
+
+        for (
+            let i = 0;
+            i < 8;
+            i++
+        ) {
+
+            const offsetX =
+                (Math.random() - 0.5)
+                * 20;
+
+            const offsetY =
+                (Math.random() - 0.5)
+                * 20;
+
+            createFluidAt(
+                deposit.x + offsetX,
+                deposit.y + offsetY,
+                "oil"
+            );
+        }
+
+        discoverElement("oil");
+    }
+}
+
 export {
-    detectWaterDirtInteractions
+    detectWaterDirtInteractions,
+    processOilDeposits
 };

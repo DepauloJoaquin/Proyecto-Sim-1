@@ -35,7 +35,9 @@ import {
     getReactionChecks,
     updateWaterTemperature,
     getTemperatureMetrics,
-    createPendingSteam
+    createPendingSteam,
+    buildParticleSpatialHash,
+    updateOilBuoyancy
 } from "./fluids.js";
 
 import {
@@ -87,7 +89,8 @@ import {
 
 
 import {
-    detectWaterDirtInteractions
+    detectWaterDirtInteractions,
+    processOilDeposits
 } from "./interactions.js";
 
 
@@ -376,21 +379,33 @@ app.ticker.add(() => {
         );
     }
 
+
+    const spatialHash = buildParticleSpatialHash();
+
+
     // Simula, actualiza colisiones y dibuja el terreno de vóxeles
     updateTerrain();
 
     updateFluidBehaviour();
 
-    updateWaterTemperature();
+    updateWaterTemperature(spatialHash);
 
     detectWaterDirtInteractions();
+    
+    processOilDeposits();
+
+    syncParticleGraphics(particleLayer);
 
     cleanupParticles(particleLayer);
 
   
 
 
-    const reactions = detectWaterLavaReactions();
+
+
+    updateOilBuoyancy(spatialHash);
+
+    const reactions = detectWaterLavaReactions(spatialHash);
 
     for (const reaction of reactions) {
 
@@ -430,6 +445,7 @@ app.ticker.add(() => {
         water: fluidMetrics.water,
         lava: fluidMetrics.lava,
         steam: fluidMetrics.steam,
+        oil: fluidMetrics.oil,
         reactionChecks: getReactionChecks(),
         reactions: reactions.length,
         frameTime: frameTime,

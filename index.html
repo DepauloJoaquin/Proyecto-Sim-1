@@ -53,6 +53,10 @@
 
             /* Prevents the game area from shrinking */
             flex-shrink: 0;
+
+            width: 900px;
+
+            box-sizing: border-box;
         }
 
         /* Container where the PixiJS canvas is inserted */
@@ -282,6 +286,10 @@
 
             /* Adds spacing between elements */
             gap: 10px;
+
+            width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
         }
 
         /* Base style for each inventory element */
@@ -303,6 +311,8 @@
 
             /* Rounds the element corners */
             border-radius: 10px;
+
+             flex-shrink: 0;
         }
 
         /* Images inside inventory elements */
@@ -854,6 +864,11 @@
             <div class="metric">
                 Steam:
                 <span id="metricSteam">0</span>
+            </div>
+
+            <div class="metric">
+                Oil:
+                <span id="metricOil">0</span>
             </div>
 
             <div class="metric">

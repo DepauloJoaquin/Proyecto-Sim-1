@@ -47,7 +47,21 @@ const elementData = {
         type: "terrain",
         icon: "./assets/mud.png",
         unlockedByDefault: false
-    }
+    },
+
+    oil:{
+        name:"Oil",
+        type:"fluid",
+        icon: "./assets/oil.png",
+        unlockedByDefault: false
+    },
+    
+    acid: {
+    name: "Acid",
+    type: "fluid",
+    icon: "./assets/acid.png",
+    unlockedByDefault: false
+}
 
 
 }

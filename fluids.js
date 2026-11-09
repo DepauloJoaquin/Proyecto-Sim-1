@@ -58,6 +58,22 @@ const fluids = {
         gravityScale: -0.5,
         viscosity: 0,
         temperature: 120
+    },
+
+    oil:{
+        color:"#2f2a1f",
+        velocity: new Box2D.b2Vec2(0,0),
+        gravityScale: 1,
+        viscosity: 0.12,
+        temperature: 20
+    },
+
+    acid: {
+        color: "#7fff00",
+        velocity: new Box2D.b2Vec2(0, 0),
+        gravityScale: 1,
+        viscosity: 0.03,
+        temperature: 20
     }
 }
 
@@ -118,6 +134,7 @@ function getFluidMetrics(){
     let water = 0;
     let lava = 0;
     let steam = 0;
+    let oil = 0;
 
     for(let i = 0; i < particleCount; i++){
         const fluidType = particleTypes[i];
@@ -133,13 +150,16 @@ function getFluidMetrics(){
         if(fluidType === "steam"){
             steam++;
         }
+        if(fluidType === "oil"){
+             oil++; }
     }
 
     return{
         total: particleCount,
         water,
         lava,
-        steam
+        steam,
+        oil
     };
 }
 
@@ -304,7 +324,9 @@ export {
     getReactionChecks,
     updateWaterTemperature,
     getTemperatureMetrics,
-    createPendingSteam
+    createPendingSteam,
+    buildParticleSpatialHash,
+    updateOilBuoyancy
     
 };
 
@@ -346,23 +368,35 @@ function createFluidBrush(x, y, fluidType) {
     }
 }
 
-function syncParticleGraphics(particleLayer){
+function syncParticleGraphics(particleLayer) {
 
     const newParticleCount = particleSystem.GetParticleCount();
 
     const visualRadius = particleSystem.GetRadius() * METER * 1.5;
 
-    while(particleGraphics.length < newParticleCount){
+    while (particleGraphics.length < newParticleCount) {
+
         const particleGraphic = new Graphics();
 
         const particleIndex = particleGraphics.length;
 
         const fluidType = particleTypes[particleIndex];
 
-        const particleColor = fluids[fluidType].color;
+        const fluid = fluids[fluidType];
 
+        if (!fluid) {
+            console.warn(
+                "Invalid particle type:",
+                particleIndex,
+                fluidType
+            );
+        }
 
-        particleGraphic.circle(0,0,visualRadius).fill(particleColor);
+        const particleColor = fluid?.color ?? fluids.water.color;
+
+        particleGraphic
+            .circle(0, 0, visualRadius)
+            .fill(particleColor);
 
         particleLayer.addChild(particleGraphic);
 
@@ -371,7 +405,10 @@ function syncParticleGraphics(particleLayer){
 
     particleCount = newParticleCount;
 
-    positionOffset = Box2D.getPointer(particleSystem.GetPositionBuffer()) >> 2;
+    positionOffset =
+        Box2D.getPointer(
+            particleSystem.GetPositionBuffer()
+        ) >> 2;
 }
 
 function updateFluidBehaviour(){
@@ -523,74 +560,129 @@ function eraseFluidAt(x,y,particleLayer){
 
 let reactionChecks = 0;
 
+const SPATIAL_HASH_SIZE = 30;
 
 
-function detectWaterLavaReactions(){
+
+function detectWaterLavaReactions(spatialHash) {
+
     reactionChecks = 0;
 
     const usedLavaParticles = new Set();
+
     const positions = Box2D.HEAPF32;
 
-    const reactions = []
+    const reactions = [];
 
     const reactionRadius = 20;
 
-    for(let i = 0; i < particleCount ; i++){
-        if(particleTypes[i] !== "water"){
+    const reactionRadiusSquared = reactionRadius * reactionRadius;
+
+
+    for ( let i = 0; i < particleCount; i++ ) {
+
+        if ( particleTypes[i] !== "water" ) {
             continue;
         }
 
-        const indexA = positionOffset + i *2;
 
+        const indexA = positionOffset + i * 2;
+        
         const waterX = positions[indexA] * METER;
 
         const waterY = positions[indexA + 1] * METER;
 
-        for(let j = 0; j < particleCount; j++){
-            if (particleTypes[j] !== "lava") {
-                continue;
+
+        const hashX = Math.floor( waterX / SPATIAL_HASH_SIZE );
+
+        const hashY = Math.floor( waterY / SPATIAL_HASH_SIZE );
+
+
+        let reactionFound = false;
+
+
+        for ( let offsetY = -1; offsetY <= 1; offsetY++ ) {
+
+            for ( let offsetX = -1; offsetX <= 1; offsetX++ ) {
+
+                const key = `${hashX + offsetX},${hashY + offsetY}`;
+
+                const nearbyParticles = spatialHash.get(key);
+
+                if ( !nearbyParticles ) {
+                    continue;
+                }
+
+
+                for ( const j of nearbyParticles ) {
+
+                    if ( particleTypes[j] !== "lava" ) {
+                        continue;
+                    }
+
+                    if ( usedLavaParticles.has(j) ) {
+                        continue;
+                    }
+
+
+                    const indexB = positionOffset + j * 2;
+
+                    const lavaX = positions[indexB] * METER;
+
+                    const lavaY = positions[indexB + 1] * METER;
+
+
+                    reactionChecks++;
+
+
+                    const deltaX = lavaX - waterX;
+
+                    const deltaY = lavaY - waterY;
+
+                    const distanceSquared = deltaX * deltaX + deltaY * deltaY;
+
+
+                    if ( distanceSquared <= reactionRadiusSquared ) {
+
+                        reactions.push({
+                            waterIndex: i,
+                            lavaIndex: j,
+
+                            x:
+                                (
+                                    waterX +
+                                    lavaX
+                                ) / 2,
+
+                            y:
+                                (
+                                    waterY +
+                                    lavaY
+                                ) / 2
+                        });
+
+
+                        usedLavaParticles.add(j);
+
+                        reactionFound = true;
+
+                        break;
+                    }
+                }
+
+
+                if ( reactionFound ) {
+                    break;
+                }
             }
 
-            if (usedLavaParticles.has(j)) {
-            continue;
+
+            if ( reactionFound ) {
+                break;
             }
-
-            const indexB = positionOffset + j * 2;
-
-            const lavaX = positions[indexB] * METER;
-
-            const lavaY = positions[indexB + 1] * METER;
-
-            reactionChecks++;
-            
-            const deltaX = lavaX - waterX;
-
-            const deltaY = lavaY - waterY;
-
-            const distanceSquared = deltaX * deltaX + deltaY * deltaY
-
-
-            if(distanceSquared <= reactionRadius * reactionRadius){
-                reactions.push({
-                    waterIndex: i,
-                    lavaIndex: j,
-                    x: (waterX + lavaX) / 2,
-                    y: (waterY + lavaY) / 2
-                });
-
-                       usedLavaParticles.add(j);
-                           break;
-            }
-
-         
-
-            
-
-
         }
-        
-        
     }
+
 
     return reactions;
 }
@@ -665,86 +757,190 @@ function getReactionChecks(){
 }
 
 
-function updateWaterTemperature() {
+function updateWaterTemperature(
+    spatialHash
+) {
 
-    const positions = Box2D.HEAPF32;
+    const positions =
+        Box2D.HEAPF32;
 
     const heatRadius = 30;
     const heatAmount = 2;
     const coolingAmount = 0.2;
 
-    for (let i = 0; i < particleCount; i++) {
+    const heatRadiusSquared =
+        heatRadius *
+        heatRadius;
 
-        if (particleTypes[i] !== "water") {
+
+    for (
+        let i = 0;
+        i < particleCount;
+        i++
+    ) {
+
+        if (
+            particleTypes[i] !==
+            "water"
+        ) {
             continue;
         }
 
+
         const waterIndex =
-            positionOffset + i * 2;
+            positionOffset +
+            i * 2;
 
         const waterX =
-            positions[waterIndex] * METER;
+            positions[waterIndex] *
+            METER;
 
         const waterY =
-            positions[waterIndex + 1] * METER;
+            positions[
+                waterIndex + 1
+            ] * METER;
+
+
+        const hashX =
+            Math.floor(
+                waterX /
+                SPATIAL_HASH_SIZE
+            );
+
+        const hashY =
+            Math.floor(
+                waterY /
+                SPATIAL_HASH_SIZE
+            );
+
 
         let isBeingHeated = false;
 
-        for (let j = 0; j < particleCount; j++) {
 
-            if (particleTypes[j] !== "lava") {
-                continue;
-            }
+        for (
+            let offsetY = -1;
+            offsetY <= 1;
+            offsetY++
+        ) {
 
-            const lavaIndex =
-                positionOffset + j * 2;
-
-            const lavaX =
-                positions[lavaIndex] * METER;
-
-            const lavaY =
-                positions[lavaIndex + 1] * METER;
-
-            const deltaX =
-                lavaX - waterX;
-
-            const deltaY =
-                lavaY - waterY;
-
-            const distanceSquared =
-                deltaX * deltaX +
-                deltaY * deltaY;
-
-            if (
-                distanceSquared <=
-                heatRadius * heatRadius
+            for (
+                let offsetX = -1;
+                offsetX <= 1;
+                offsetX++
             ) {
 
-                isBeingHeated = true;
+                const key =
+                    `${hashX + offsetX},${hashY + offsetY}`;
 
-                particleTemperatures[i] +=
-                    heatAmount;
+                const nearbyParticles =
+                    spatialHash.get(key);
 
                 if (
-                    particleTemperatures[i] >= 100
+                    !nearbyParticles
                 ) {
-                    convertWaterToSteam(i);
-                    updateParticleGraphicToSteam(i);
+                    continue;
                 }
 
+
+                for (
+                    const j
+                    of nearbyParticles
+                ) {
+
+                    if (
+                        particleTypes[j] !==
+                        "lava"
+                    ) {
+                        continue;
+                    }
+
+
+                    const lavaIndex =
+                        positionOffset +
+                        j * 2;
+
+                    const lavaX =
+                        positions[lavaIndex] *
+                        METER;
+
+                    const lavaY =
+                        positions[
+                            lavaIndex + 1
+                        ] * METER;
+
+
+                    const deltaX =
+                        lavaX -
+                        waterX;
+
+                    const deltaY =
+                        lavaY -
+                        waterY;
+
+                    const distanceSquared =
+                        deltaX * deltaX +
+                        deltaY * deltaY;
+
+
+                    if (
+                        distanceSquared <=
+                        heatRadiusSquared
+                    ) {
+
+                        isBeingHeated = true;
+
+                        break;
+                    }
+                }
+
+
+                if (
+                    isBeingHeated
+                ) {
+                    break;
+                }
+            }
+
+
+            if (
+                isBeingHeated
+            ) {
                 break;
             }
         }
 
-        if (!isBeingHeated) {
+
+        if (
+            isBeingHeated
+        ) {
+
+            particleTemperatures[i] +=
+                heatAmount;
+
+
+            if (
+                particleTemperatures[i] >=
+                100
+            ) {
+
+                convertWaterToSteam(i);
+
+                updateParticleGraphicToSteam(
+                    i
+                );
+            }
+
+        } else {
 
             particleTemperatures[i] -=
                 coolingAmount;
+
 
             if (
                 particleTemperatures[i] <
                 fluids.water.temperature
             ) {
+
                 particleTemperatures[i] =
                     fluids.water.temperature;
             }
@@ -839,6 +1035,152 @@ function getTemperatureMetrics() {
         averageWaterTemperature,
         maxWaterTemperature
     };
+}
+
+
+
+function getSpatialHashKey(x, y) {
+
+    const cellX =
+        Math.floor(
+            x / SPATIAL_HASH_SIZE
+        );
+
+    const cellY =
+        Math.floor(
+            y / SPATIAL_HASH_SIZE
+        );
+
+    return `${cellX},${cellY}`;
+}
+
+
+function buildParticleSpatialHash() {
+
+    const spatialHash = new Map();
+
+    const positions = Box2D.HEAPF32;
+
+    for (let i = 0;i < particleCount;i++) {
+
+        const index =positionOffset +i * 2;
+
+        const x = positions[index] * METER;
+
+        const y = positions[index + 1] * METER;
+
+        const key = getSpatialHashKey( x, y );
+
+        if ( !spatialHash.has(key) ) {
+            spatialHash.set( key, [] );
+        }
+
+        spatialHash.get(key).push(i);
+    }
+
+    return spatialHash;
+}
+
+
+function updateOilBuoyancy(spatialHash ) {
+
+    const positions = Box2D.HEAPF32;
+    const velocities = Box2D.HEAPF32;
+
+    const velocityOffset = Box2D.getPointer( particleSystem .GetVelocityBuffer() ) >> 2;
+
+
+    const buoyancyRadius = 30;
+
+    const buoyancyRadiusSquared = buoyancyRadius * buoyancyRadius;
+
+    const buoyancyForce = 0.18;
+
+
+    for ( let i = 0; i < particleCount; i++ ) {
+
+        if ( particleTypes[i] !== "oil" ) {
+            continue;
+        }
+
+
+        const positionIndex = positionOffset + i * 2;
+
+        const oilX = positions[positionIndex] * METER;
+
+        const oilY = positions[ positionIndex + 1 ] * METER;
+
+
+        const hashX = Math.floor( oilX / SPATIAL_HASH_SIZE );
+
+        const hashY = Math.floor( oilY / SPATIAL_HASH_SIZE );
+
+
+        let waterNearby = false;
+
+
+        for ( let offsetY = -1; offsetY <= 1; offsetY++ ) {
+
+            for ( let offsetX = -1; offsetX <= 1; offsetX++ ) {
+
+                const key = `${hashX + offsetX},${hashY + offsetY}`;
+
+                const nearbyParticles = spatialHash.get(key);
+
+                if ( !nearbyParticles ) {
+                    continue;
+                }
+
+
+                for ( const j of nearbyParticles ) {
+
+                    if ( particleTypes[j] !== "water" ) {
+                        continue;
+                    }
+
+
+                    const waterIndex = positionOffset + j * 2;
+
+                    const waterX = positions[waterIndex] * METER;
+
+                    const waterY = positions[ waterIndex + 1 ] * METER;
+
+
+                    const deltaX = waterX - oilX;
+
+                    const deltaY = waterY - oilY;
+
+                    const distanceSquared = deltaX * deltaX + deltaY * deltaY;
+
+
+                    if ( distanceSquared <= buoyancyRadiusSquared ) {
+
+                        waterNearby = true;
+
+                        break;
+                    }
+                }
+
+
+                if ( waterNearby ) {
+                    break;
+                }
+            }
+
+
+            if ( waterNearby ) {
+                break;
+            }
+        }
+
+
+        if ( waterNearby ) {
+
+            const velocityIndex = velocityOffset + i * 2;
+
+            velocities[ velocityIndex + 1 ] -= buoyancyForce;
+        }
+    }
 }
 
 

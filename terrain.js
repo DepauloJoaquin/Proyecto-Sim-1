@@ -102,10 +102,10 @@ const EMPTY = 0;
 
 // Materiales: falls = le afecta la gravedad, solid = choca con los fluidos
 const terrainMaterials = {
-    dirt:  { id: 1, colors: ["#8b5a2b", "#7d5026", "#96633a"], falls: true,  destructible: true,  solid: true },
+    dirt:  { id: 1, colors: ["#8b5a2b", "#7d5026", "#96633a"], falls: true,  destructible: true,  solid: true, fallChance: 1 },
     stone: { id: 2, colors: ["#7a7a7a", "#6c6c6c", "#858585"], falls: false, destructible: true,  solid: true },
     block: { id: 3, colors: null, falls: false, destructible: false, solid: false }, // paredes/piso de createTerrainBlock
-    mud:{id:4,colors:[ "#5c4033", "#6b4b3a", "#4b362b"], falls: true, destructible: true, solid: true}
+    mud:{id:4,colors:[ "#5c4033", "#6b4b3a", "#4b362b"], falls: true, destructible: true, solid: true, fallChance: 0.25}
 };
 
 // Busca materiales por id y pasa los colores a [r, g, b]
@@ -137,6 +137,10 @@ const chunkBodyDef = new Box2D.b2BodyDef();
 const chunkShape = new Box2D.b2PolygonShape();
 const chunkCenter = new Box2D.b2Vec2(0, 0);
 
+let oilDeposits;
+
+const exposedOilDeposits = [];
+
 
 function setTerrainBrushSize(value) {
     terrainBrushSize = Number(value);
@@ -158,6 +162,10 @@ function setupTerrain(app) {
     nextActiveChunks = new Uint8Array(chunksX * chunksY);
     physicsDirtyChunks = new Uint8Array(chunksX * chunksY);
     chunkBodies = new Array(chunksX * chunksY).fill(null);
+
+
+
+    oilDeposits = new Uint8Array(gridWidth * gridHeight);
 
     // Canvas chico donde 1 píxel = 1 vóxel, después se agranda con el sprite
     const canvas = document.createElement("canvas");
@@ -290,7 +298,47 @@ function generateTerrain() {
             }
         }
     }
+
+
+    generateOilDeposits();
 }
+
+
+function generateOilDeposits(){
+    const depositChance = 0.015;
+
+    for(let cellY = 0; cellY < gridHeight; cellY++){
+        for(let cellX = 0 ; cellX < gridWidth ; cellX++){
+            if(getCell(cellX,cellY) !== terrainMaterials.stone.id){
+                continue;
+            }
+
+            if(Math.random() < depositChance){
+                const index = getIndex(cellX,cellY);
+
+                oilDeposits[index] = 1;
+            }
+        }
+    }
+}
+
+
+
+function getExposedOilDeposits() {
+
+    const deposits =[...exposedOilDeposits];
+
+    exposedOilDeposits.length = 0;
+
+    return deposits;
+}
+
+
+
+
+
+
+
 // PINCEL (PINTAR / BORRAR)
 // Recorre los vóxeles dentro del círculo del pincel
 function forEachCellInBrush(x, y, action) {
@@ -484,6 +532,18 @@ function eraseTerrainAt(x, y) {
     forEachCellInBrush(x, y, (cellX, cellY) => {
         const material = materialsById[getCell(cellX, cellY)];
 
+
+
+        const index = getIndex(cellX,cellY);
+
+        if(oilDeposits[index] === 1){
+            exposedOilDeposits.push({x:(cellX + 0.5) * CELL_SIZE, 
+                y:(cellY + 0.5) * CELL_SIZE
+            });
+
+        oilDeposits[index] = 0;
+        }
+
         if (material && material.destructible) {
             setCell(cellX, cellY, EMPTY, 0);
         }
@@ -534,7 +594,12 @@ function simulateTerrain() {
                     const material = materialsById[cells[index]];
 
                     if (material && material.falls && lastUpdate[index] !== frameId) {
-                        updateFallingCell(cellX, cellY);
+                        const fallChance = material.fallChance ?? 1;
+                        if (Math.random() <= fallChance){
+                            updateFallingCell(cellX,cellY);
+                        } else {
+                            nextActiveChunks[getChunkIndex(cellX,cellY)] = 1;
+                        }
                     }
                 }
             }
@@ -672,5 +737,6 @@ export {
     setTerrainBrushSize,
     createStoneAt,
     wetDirtAt,
-    createMudAt
+    createMudAt,
+    getExposedOilDeposits
 };
